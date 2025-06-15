@@ -1,10 +1,11 @@
 """
 User models and schemas for authentication and user management.
 """
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional, List
 from uuid import UUID, uuid4
 from enum import Enum
+import secrets
 
 from sqlmodel import SQLModel, Field, Column, String, Relationship
 from sqlalchemy import DateTime, func
@@ -303,3 +304,73 @@ class UserListResponseAdmin(SQLModel):
     page: int
     size: int
     pages: int
+
+
+class EmailVerificationToken(SQLModel, table=True):
+    """Email verification token model."""
+    __tablename__ = "email_verification_tokens"
+    
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    user_id: UUID = Field(foreign_key="users.id", index=True)
+    token: str = Field(unique=True, index=True)
+    expires_at: datetime = Field()
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    used_at: Optional[datetime] = Field(default=None)
+    
+    @classmethod
+    def create_token(cls, user_id: UUID, hours: int = 24) -> "EmailVerificationToken":
+        """Create a new verification token."""
+        return cls(
+            user_id=user_id,
+            token=secrets.token_urlsafe(32),
+            expires_at=datetime.utcnow() + timedelta(hours=hours)
+        )
+    
+    @property
+    def is_expired(self) -> bool:
+        """Check if token is expired."""
+        return datetime.utcnow() > self.expires_at
+    
+    @property
+    def is_used(self) -> bool:
+        """Check if token has been used."""
+        return self.used_at is not None
+    
+    def mark_used(self) -> None:
+        """Mark token as used."""
+        self.used_at = datetime.utcnow()
+
+
+class PasswordResetToken(SQLModel, table=True):
+    """Password reset token model."""
+    __tablename__ = "password_reset_tokens"
+    
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    user_id: UUID = Field(foreign_key="users.id", index=True)
+    token: str = Field(unique=True, index=True)
+    expires_at: datetime = Field()
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    used_at: Optional[datetime] = Field(default=None)
+    
+    @classmethod
+    def create_token(cls, user_id: UUID, hours: int = 1) -> "PasswordResetToken":
+        """Create a new password reset token."""
+        return cls(
+            user_id=user_id,
+            token=secrets.token_urlsafe(32),
+            expires_at=datetime.utcnow() + timedelta(hours=hours)
+        )
+    
+    @property
+    def is_expired(self) -> bool:
+        """Check if token is expired."""
+        return datetime.utcnow() > self.expires_at
+    
+    @property
+    def is_used(self) -> bool:
+        """Check if token has been used."""
+        return self.used_at is not None
+    
+    def mark_used(self) -> None:
+        """Mark token as used."""
+        self.used_at = datetime.utcnow()
