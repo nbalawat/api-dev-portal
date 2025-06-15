@@ -45,13 +45,39 @@ services:
       retries: 3
       start_period: 30s
 
-  # FastAPI Application
-  app:
+  # Frontend Development Server
+  frontend:
     build:
-      context: .
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+      target: development
+    container_name: devportal_frontend
+    restart: unless-stopped
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+      - NEXT_PUBLIC_WS_URL=ws://localhost:8000
+      - NODE_ENV=development
+      - CHOKIDAR_USEPOLLING=true
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    ports:
+      - "3000:3000"
+    networks:
+      - devportal-network
+    depends_on:
+      - backend
+    profiles:
+      - frontend
+
+  # FastAPI Backend Application
+  backend:
+    build:
+      context: ./backend
       dockerfile: Dockerfile
       target: development
-    container_name: devportal_app
+    container_name: devportal_backend
     restart: unless-stopped
     env_file:
       - .env.dev
@@ -60,9 +86,11 @@ services:
       - REDIS_URL=redis://redis:6379/0
       - POSTGRES_HOST=postgres
       - REDIS_HOST=redis
+      - FRONTEND_URL=http://localhost:3000
     volumes:
-      - ./app:/app/app:rw
-      - ./docker:/app/docker:ro
+      - ./backend/app:/app/app:rw
+      - ./backend/scripts:/app/scripts:rw
+      - ./shared:/app/shared:ro
       - app_logs:/app/logs
     ports:
       - "8000:8000"
@@ -73,6 +101,40 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Full Stack (Production-like build)
+  fullstack:
+    build:
+      context: .
+      dockerfile: Dockerfile.fullstack
+      target: production
+    container_name: devportal_fullstack
+    restart: unless-stopped
+    env_file:
+      - .env.prod
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-devportal_user}:${POSTGRES_PASSWORD:-dev_password_123}@postgres:5432/${POSTGRES_DB:-devportal}
+      - REDIS_URL=redis://redis:6379/0
+      - NODE_ENV=production
+    volumes:
+      - app_logs:/app/logs
+    ports:
+      - "8000:8000"
+    networks:
+      - devportal-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    profiles:
+      - production
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s

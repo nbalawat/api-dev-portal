@@ -1,1 +1,2 @@
 - don't forget that the app is running inside docker.  so don't randomly start testing the app outside docker
+- create a new branch for every new feature

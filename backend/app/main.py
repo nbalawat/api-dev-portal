@@ -2,10 +2,13 @@
 FastAPI Developer Portal - Main Application
 """
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 import time
 import uvicorn
+from pathlib import Path
+import os
 
 from .core.config import settings
 from .core.database import init_database, init_db, close_db
@@ -23,15 +26,35 @@ app = FastAPI(
     openapi_url=settings.openapi_url,
 )
 
-# CORS middleware
-if settings.cors_origins:
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=settings.cors_origins,
-        allow_credentials=True,
-        allow_methods=settings.cors_methods,
-        allow_headers=settings.cors_headers,
-    )
+# CORS middleware - Enhanced for frontend integration
+cors_origins = settings.cors_origins or [
+    "http://localhost:3000",  # Next.js default dev server
+    "http://localhost:3001",  # Alternative frontend port
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:3001",
+]
+
+# Add production frontend URL if configured
+if hasattr(settings, 'frontend_url') and settings.frontend_url:
+    cors_origins.append(settings.frontend_url)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=cors_origins,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allow_headers=[
+        "Authorization",
+        "Content-Type",
+        "X-API-Key",
+        "X-Requested-With",
+        "Accept",
+        "Origin",
+        "Access-Control-Request-Method",
+        "Access-Control-Request-Headers",
+    ],
+    expose_headers=["X-Process-Time", "X-RateLimit-Remaining", "X-RateLimit-Reset"],
+)
 
 # API Key Authentication Middleware
 app.add_middleware(
@@ -47,18 +70,39 @@ app.add_middleware(
     enable_endpoint_limits=True
 )
 
-# Include routers
-app.include_router(auth.router)
-app.include_router(users.router)
-app.include_router(api_keys.router)
-app.include_router(api_v1.router)
-app.include_router(permissions.router)
-app.include_router(rate_limits.router)
-app.include_router(analytics.router)
-app.include_router(key_lifecycle.router)
-app.include_router(ui.router)
-app.include_router(management.router)
-app.include_router(activity_logs.router)
+# Static file serving for frontend assets
+FRONTEND_BUILD_PATH = Path(__file__).parent.parent.parent / "frontend" / "dist"
+FRONTEND_BUILD_PATH_ALT = Path(__file__).parent.parent.parent / "frontend" / "out"  # Next.js export
+FRONTEND_BUILD_PATH_BUILD = Path(__file__).parent.parent.parent / "frontend" / "build"  # Create React App
+
+# Try to find frontend build directory
+frontend_path = None
+for path in [FRONTEND_BUILD_PATH, FRONTEND_BUILD_PATH_ALT, FRONTEND_BUILD_PATH_BUILD]:
+    if path.exists() and path.is_dir():
+        frontend_path = path
+        break
+
+if frontend_path:
+    # Mount static files for frontend assets
+    app.mount("/static", StaticFiles(directory=frontend_path / "static"), name="static")
+    app.mount("/_next", StaticFiles(directory=frontend_path / "_next"), name="nextjs")
+    
+    print(f"✅ Serving frontend from: {frontend_path}")
+else:
+    print("⚠️  Frontend build not found. Run 'npm run build' in frontend directory.")
+
+# Include API routers
+app.include_router(auth.router, prefix="/api", tags=["Authentication"])
+app.include_router(users.router, prefix="/api", tags=["Users"])
+app.include_router(api_keys.router, prefix="/api", tags=["API Keys"])
+app.include_router(api_v1.router, prefix="/api/v1", tags=["API v1"])
+app.include_router(permissions.router, prefix="/api", tags=["Permissions"])
+app.include_router(rate_limits.router, prefix="/api", tags=["Rate Limits"])
+app.include_router(analytics.router, prefix="/api", tags=["Analytics"])
+app.include_router(key_lifecycle.router, prefix="/api", tags=["Key Lifecycle"])
+app.include_router(ui.router, prefix="/api", tags=["UI"])
+app.include_router(management.router, prefix="/api", tags=["Management"])
+app.include_router(activity_logs.router, prefix="/api", tags=["Activity Logs"])
 
 # Basic middleware for request timing
 @app.middleware("http")
@@ -82,18 +126,41 @@ async def health_check():
         "timestamp": time.time()
     }
 
-# Root endpoint
+# Frontend SPA catch-all route
+@app.get("/app/{path:path}")
+@app.get("/dashboard/{path:path}")
+@app.get("/admin/{path:path}")
+@app.get("/auth/{path:path}")
+async def serve_frontend(path: str = ""):
+    """
+    Serve the frontend SPA for all frontend routes
+    """
+    if frontend_path and (frontend_path / "index.html").exists():
+        return FileResponse(frontend_path / "index.html")
+    else:
+        return JSONResponse(
+            status_code=404,
+            content={"detail": "Frontend not available. Please build the frontend first."}
+        )
+
+# Root endpoint - serve frontend or API info
 @app.get("/", tags=["Root"])
 async def root():
     """
-    Root endpoint with basic API information
+    Root endpoint - serves frontend if available, otherwise API information
     """
+    # If frontend is available and request accepts HTML, serve the frontend
+    if frontend_path and (frontend_path / "index.html").exists():
+        return FileResponse(frontend_path / "index.html")
+    
+    # Otherwise return API information
     return {
         "message": f"Welcome to {settings.app_name}",
         "version": settings.app_version,
         "environment": settings.app_env,
         "docs_url": settings.docs_url or "Documentation disabled in production",
-        "health_check": "/health"
+        "health_check": "/health",
+        "frontend_available": frontend_path is not None
     }
 
 # Basic info endpoint

@@ -1,6 +1,6 @@
-# FastAPI Developer Portal Backend
+# 🚀 API Developer Portal
 
-A comprehensive, enterprise-grade developer portal backend built with FastAPI, featuring multi-role user management, API key management, usage analytics, and interactive documentation.
+A comprehensive, enterprise-grade API Developer Portal built with FastAPI (backend) and Next.js (frontend). Features include user management, API key administration, usage analytics, and interactive documentation.
 
 ## 🚀 Features
 
