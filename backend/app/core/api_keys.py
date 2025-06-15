@@ -238,26 +238,12 @@ class APIKeyManager:
             )
         )
         
-        # Reset daily counter if needed
-        result = await db.execute(
-            select(APIKey.last_request_reset).where(APIKey.id == api_key_id)
+        # Increment daily counter (simplified approach)
+        await db.execute(
+            update(APIKey)
+            .where(APIKey.id == api_key_id)
+            .values(requests_today=APIKey.requests_today + 1)
         )
-        last_reset = result.scalar()
-        
-        if not last_reset or last_reset < today_start:
-            # Reset daily counter
-            await db.execute(
-                update(APIKey)
-                .where(APIKey.id == api_key_id)
-                .values(requests_today=1)
-            )
-        else:
-            # Increment daily counter
-            await db.execute(
-                update(APIKey)
-                .where(APIKey.id == api_key_id)
-                .values(requests_today=APIKey.requests_today + 1)
-            )
     
     @staticmethod
     async def revoke_api_key(
