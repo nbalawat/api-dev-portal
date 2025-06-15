@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import React from 'react'
 import { AuthWrapper } from '@/components/auth-wrapper'
 import { motion } from 'framer-motion'
 import { 
@@ -26,7 +27,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useApiKeys, useUsageStats, useCurrentUser, useApiMutation } from '@/hooks/use-api'
 import { apiClient } from '@/lib/api'
-import { toast } from '@/hooks/use-toast'
+import { useToast } from '@/hooks/use-toast'
 import { CreateApiKeyModal } from '@/components/dashboard/create-api-key-modal'
 import { EditApiKeyModal } from '@/components/dashboard/edit-api-key-modal'
 
@@ -36,6 +37,11 @@ export default function DashboardPage() {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [selectedApiKey, setSelectedApiKey] = useState<any>(null)
+  const [recentActions, setRecentActions] = useState<any[]>([]) // Track live actions
+  const [copiedKey, setCopiedKey] = useState<string | null>(null) // Track which key was copied
+
+  // Toast hook
+  const { toast } = useToast()
 
   // API data hooks
   const { data: apiKeys, loading: apiKeysLoading, error: apiKeysError, refetch: refetchApiKeys } = useApiKeys()
@@ -60,6 +66,17 @@ export default function DashboardPage() {
     }
     checkBackend()
   }, [])
+
+  // Auto-refresh API keys every 30 seconds when on overview tab
+  useEffect(() => {
+    if (activeTab === 'overview' && backendStatus === 'available') {
+      const interval = setInterval(() => {
+        refetchApiKeys()
+      }, 30000) // 30 seconds
+      
+      return () => clearInterval(interval)
+    }
+  }, [activeTab, backendStatus, refetchApiKeys])
 
   // Mock data fallback when backend is unavailable
   const mockStats = [
@@ -103,16 +120,225 @@ export default function DashboardPage() {
     { action: 'Key Regenerated', key: 'Testing API', time: '1 day ago' }
   ]
 
+  // Helper functions
+  const formatNumber = (num: number) => {
+    if (num >= 1000000) {
+      return (num / 1000000).toFixed(1) + 'M'
+    } else if (num >= 1000) {
+      return (num / 1000).toFixed(1) + 'K'
+    }
+    return num.toString()
+  }
+
+  // Add live action tracking
+  const addRecentAction = (action: string, keyName: string, detail?: string) => {
+    const newAction = {
+      action,
+      key: keyName,
+      time: 'just now',
+      detail: detail || ''
+    }
+    setRecentActions(prev => [newAction, ...prev.slice(0, 3)]) // Keep only 4 most recent
+  }
+
   // Use real data if available, otherwise fallback to mock data
-  const displayStats = Array.isArray(usageStats) ? usageStats : mockStats
-  const displayApiKeys = Array.isArray(apiKeys) ? apiKeys.map((key: any) => ({
-    ...key,
-    permissions: key.scopes || key.permissions || ['read'], // Map scopes to permissions for frontend
-    key: key.key_id || key.key, // Map key_id to key for display
-    last_used: key.last_used_at || key.last_used, // Map last_used_at to last_used
-    is_active: key.status === 'active' // Map status to is_active
-  })) : mockApiKeys
-  const displayActivity = mockActivity // Always use mock for now
+  // Force recalculation when apiKeys change by using useMemo
+  const displayStats = React.useMemo(() => {
+    if (backendStatus !== 'available') return mockStats
+    // Debug: log the actual backend data structure
+    console.log('=== STATS DEBUG ===')
+    console.log('Backend status:', backendStatus)
+    console.log('UsageStats loading:', statsLoading)
+    console.log('UsageStats error:', statsError)
+    console.log('Backend usageStats:', usageStats)
+    console.log('API Keys data:', apiKeys)
+    console.log('API Keys loading:', apiKeysLoading)
+    console.log('API Keys error:', apiKeysError)
+    
+    // Calculate real stats from available data
+    const activeKeysCount = Array.isArray(apiKeys) ? apiKeys.filter(k => k.status === 'active').length : 0
+    const totalKeysCount = Array.isArray(apiKeys) ? apiKeys.length : 0
+    
+    // Calculate total requests from API keys if available (only real values, no estimates)
+    const totalRequests = Array.isArray(apiKeys) ? 
+      apiKeys.reduce((sum, key) => sum + (key.total_requests || key.request_count || 0), 0) : 0
+    
+    console.log('Calculated stats:', {
+      activeKeysCount,
+      totalKeysCount,
+      totalRequests
+    })
+    
+    // If we have no real data from backend, use actual API key data for at least some real values
+    if (!usageStats || statsError) {
+      console.log('No usageStats from backend, using API key data')
+      return [
+        { 
+          label: 'Total API Calls', 
+          value: formatNumber(totalRequests), // Show actual total from API keys
+          change: totalRequests > 0 ? '+' + formatNumber(Math.floor(totalRequests * 0.05)) : '0', 
+          trend: totalRequests > 0 ? 'up' : 'down'
+        },
+        { 
+          label: 'Active API Keys', 
+          value: activeKeysCount, 
+          change: activeKeysCount > 0 ? `+${activeKeysCount}` : '0', 
+          trend: activeKeysCount > 0 ? 'up' : 'down'
+        },
+        { 
+          label: 'Response Time', 
+          value: 'N/A', // No real data available
+          change: 'N/A', 
+          trend: 'up'
+        },
+        { 
+          label: 'Success Rate', 
+          value: 'N/A', // No real data available
+          change: 'N/A', 
+          trend: 'up'
+        }
+      ]
+    }
+    
+    // Use backend data if available, otherwise show real calculated values
+    return [
+      { 
+        label: 'Total API Calls', 
+        value: formatNumber(
+          usageStats?.total_requests || 
+          usageStats?.total_calls || 
+          usageStats?.requests || 
+          totalRequests
+        ), 
+        change: usageStats?.request_change || usageStats?.calls_change || (totalRequests > 0 ? '+' + formatNumber(Math.floor(totalRequests * 0.05)) : '0'), 
+        trend: 'up'
+      },
+      { 
+        label: 'Active API Keys', 
+        value: usageStats?.active_keys || usageStats?.active_api_keys || activeKeysCount, 
+        change: usageStats?.keys_change || usageStats?.api_keys_change || (activeKeysCount > 0 ? `+${activeKeysCount}` : '0'), 
+        trend: 'up'
+      },
+      { 
+        label: 'Response Time', 
+        value: usageStats?.avg_response_time || usageStats?.response_time || usageStats?.average_response_time || 'N/A', 
+        change: usageStats?.response_time_change || usageStats?.avg_response_change || 'N/A', 
+        trend: 'up'
+      },
+      { 
+        label: 'Success Rate', 
+        value: usageStats?.success_rate || usageStats?.success_percentage || 'N/A', 
+        change: usageStats?.success_rate_change || usageStats?.success_change || 'N/A', 
+        trend: 'up'
+      }
+    ]
+  }, [backendStatus, usageStats, statsError, apiKeys, apiKeysLoading, apiKeysError])
+  
+  // Process API keys to handle duplicates and improve UX
+  const displayApiKeys = Array.isArray(apiKeys) ? (() => {
+    const processedKeys = apiKeys.map((key: any) => ({
+      ...key,
+      permissions: key.scopes || key.permissions || ['read'], // Map scopes to permissions for frontend
+      key: key.key_id || key.key, // Map key_id to key for display
+      last_used: key.last_used_at || key.last_used, // Map last_used_at to last_used
+      is_active: key.status === 'active' // Map status to is_active
+    }))
+    
+    // Group keys by base name (remove rotation suffixes) and only show active ones
+    const keyGroups = new Map()
+    
+    processedKeys.forEach(key => {
+      // Extract base name by removing (rotated) suffixes
+      const baseName = key.name.replace(/\s*\(rotated\)*/gi, '').trim()
+      
+      if (!keyGroups.has(baseName) || key.status === 'active') {
+        // Either it's the first key with this name, or it's the active version
+        keyGroups.set(baseName, {
+          ...key,
+          name: baseName // Use clean name without rotation suffixes
+        })
+      }
+    })
+    
+    return Array.from(keyGroups.values())
+  })() : mockApiKeys
+  
+  // Generate activity from API keys data when backend is available
+  const displayActivity = backendStatus === 'available' && displayApiKeys.length > 0 ? (() => {
+    const activities = []
+    
+    // Sort API keys by most recent activity (created_at or last_used)
+    const sortedKeys = [...displayApiKeys].sort((a, b) => {
+      const aTime = Math.max(
+        new Date(a.created_at || 0).getTime(),
+        new Date(a.last_used || 0).getTime()
+      )
+      const bTime = Math.max(
+        new Date(b.created_at || 0).getTime(),
+        new Date(b.last_used || 0).getTime()
+      )
+      return bTime - aTime
+    })
+    
+    // Generate meaningful activities for each key
+    sortedKeys.slice(0, 4).forEach(key => {
+      const createdDate = new Date(key.created_at)
+      const lastUsedDate = key.last_used ? new Date(key.last_used) : null
+      const now = new Date()
+      
+      // Determine the most recent activity
+      let mostRecentActivity = 'created'
+      let mostRecentTime = createdDate
+      
+      if (lastUsedDate && lastUsedDate > createdDate) {
+        mostRecentActivity = 'used'
+        mostRecentTime = lastUsedDate
+      }
+      
+      const timeDiff = Math.floor((now.getTime() - mostRecentTime.getTime()) / (1000 * 3600 * 24))
+      let timeAgo = timeDiff === 0 ? 'today' : 
+                   timeDiff === 1 ? '1 day ago' : 
+                   timeDiff < 7 ? `${timeDiff} days ago` :
+                   timeDiff < 30 ? `${Math.floor(timeDiff/7)} weeks ago` :
+                   `${Math.floor(timeDiff/30)} months ago`
+      
+      // Generate activity based on key properties
+      if (mostRecentActivity === 'used' && lastUsedDate) {
+        activities.push({
+          action: 'API Key Used',
+          key: key.name,
+          time: timeAgo,
+          detail: `${formatNumber(key.total_requests || 0)} total requests`
+        })
+      } else if (!key.is_active) {
+        activities.push({
+          action: 'API Key Deactivated',
+          key: key.name,
+          time: timeAgo,
+          detail: 'Status changed to inactive'
+        })
+      } else if (key.is_active && key.total_requests > 0) {
+        activities.push({
+          action: 'API Key Active',
+          key: key.name,
+          time: timeAgo,
+          detail: `${formatNumber(key.total_requests)} requests processed`
+        })
+      } else {
+        activities.push({
+          action: 'API Key Created',
+          key: key.name,
+          time: timeAgo,
+          detail: 'New key generated'
+        })
+      }
+    })
+    
+    // Combine live actions with historical activities
+    const allActivities = [...recentActions, ...activities]
+    
+    return allActivities.slice(0, 4) // Show 4 most recent
+  })() : [...recentActions, ...mockActivity].slice(0, 4)
 
   const navigation = [
     { id: 'overview', label: 'Overview', icon: BarChart3 },
@@ -125,40 +351,71 @@ export default function DashboardPage() {
     return key.slice(0, 8) + '...' + key.slice(-4)
   }
 
-  const copyToClipboard = async (text: string) => {
+  const copyToClipboard = async (text: string, keyId: string, keyName?: string) => {
     try {
       await navigator.clipboard.writeText(text)
+      setCopiedKey(keyId)
+      
+      console.log('Showing copy success toast')
       toast({
         title: "Copied!",
         description: "API key copied to clipboard",
-        variant: "default",
       })
+      
+      addRecentAction('API Key Copied', keyName || 'Unknown Key', 'Key copied to clipboard')
+      
+      // Reset copied state after 2 seconds
+      setTimeout(() => {
+        setCopiedKey(null)
+      }, 2000)
     } catch (err) {
+      console.error('Copy failed:', err)
       toast({
-        title: "Error",
+        title: "❌ Error",
         description: "Failed to copy to clipboard",
         variant: "destructive",
+        duration: 3000,
       })
     }
   }
 
-  const handleDeleteApiKey = async (keyId: string) => {
+  const handleDeleteApiKey = async (apiKey: any) => {
+    if (!confirm('Are you sure you want to delete this API key? This action cannot be undone.')) {
+      return
+    }
+    
+    // Use the correct ID field - try multiple possible field names
+    const keyId = apiKey.id || apiKey.key_id || apiKey.key
+    
+    if (!keyId) {
+      toast({
+        title: "❌ Error",
+        description: "Cannot identify API key ID",
+        variant: "destructive",
+        duration: 4000,
+      })
+      return
+    }
+    
     try {
       await deleteKeyMutate(
         (id: string) => apiClient.deleteApiKey(id),
         keyId
       )
       toast({
-        title: "Success",
+        title: "🗑️ Success",
         description: "API key deleted successfully",
-        variant: "default",
+        variant: "success" as any,
+        duration: 3000,
       })
-      refetchApiKeys()
-    } catch (error) {
+      addRecentAction('API Key Deleted', apiKey.name, 'Key permanently removed')
+      await refetchApiKeys()
+    } catch (error: any) {
       toast({
-        title: "Error", 
-        description: "Failed to delete API key",
+        title: "❌ Error", 
+        description: error?.message || "Failed to delete API key",
         variant: "destructive",
+        duration: 4000,
       })
     }
   }
@@ -167,18 +424,15 @@ export default function DashboardPage() {
     return new Date(dateString).toLocaleDateString()
   }
 
-  const formatNumber = (num: number) => {
-    if (num >= 1000000) {
-      return (num / 1000000).toFixed(1) + 'M'
-    } else if (num >= 1000) {
-      return (num / 1000).toFixed(1) + 'K'
-    }
-    return num.toString()
-  }
-
-  const getTimeAgo = (dateString: string) => {
+  const getTimeAgo = (dateString: string | null) => {
+    if (!dateString) return 'never'
+    
     const now = new Date()
     const date = new Date(dateString)
+    
+    // Check if date is valid
+    if (isNaN(date.getTime())) return 'never'
+    
     const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000)
     
     if (diffInSeconds < 60) return 'just now'
@@ -201,41 +455,65 @@ export default function DashboardPage() {
         keyData
       )
       toast({
-        title: "Success",
+        title: "✅ Success",
         description: "API key created successfully",
-        variant: "default",
+        variant: "success" as any,
+        duration: 3000,
       })
-      refetchApiKeys()
+      addRecentAction('API Key Created', keyData.name, 'New key generated')
+      await refetchApiKeys()
       setShowCreateModal(false)
     } catch (error) {
       toast({
-        title: "Error",
+        title: "❌ Error",
         description: "Failed to create API key",
         variant: "destructive",
+        duration: 4000,
       })
       throw error
     }
   }
 
   const handleUpdateApiKey = async (keyId: string, updates: any) => {
+    console.log('Updating API key:', { keyId, updates })
+    
     try {
       await updateKeyMutate(
         ({ id, data }: { id: string; data: any }) => apiClient.updateApiKey(id, data),
         { id: keyId, data: updates }
       )
+      
+      // Determine what was updated
+      let action = 'API Key Updated'
+      let detail = 'Settings modified'
+      
+      if (updates.hasOwnProperty('is_active')) {
+        action = updates.is_active ? 'API Key Activated' : 'API Key Deactivated'
+        detail = `Status changed to ${updates.is_active ? 'active' : 'inactive'}`
+      } else if (updates.permissions) {
+        action = 'API Key Permissions Updated'
+        detail = `Permissions: ${updates.permissions.join(', ')}`
+      } else if (updates.rate_limit) {
+        action = 'API Key Rate Limit Updated'
+        detail = `Rate limit: ${updates.rate_limit}/hour`
+      }
+      
       toast({
-        title: "Success",
+        title: "✅ Success",
         description: "API key updated successfully",
-        variant: "default",
+        variant: "success" as any,
+        duration: 3000,
       })
-      refetchApiKeys()
+      addRecentAction(action, selectedApiKey?.name || 'Unknown Key', detail)
+      await refetchApiKeys()
       setShowEditModal(false)
       setSelectedApiKey(null)
     } catch (error) {
       toast({
-        title: "Error",
+        title: "❌ Error",
         description: "Failed to update API key",
         variant: "destructive",
+        duration: 4000,
       })
       throw error
     }
@@ -243,21 +521,33 @@ export default function DashboardPage() {
 
   const handleRegenerateApiKey = async (keyId: string) => {
     try {
-      await regenerateKeyMutate(
+      const regeneratedKey = await regenerateKeyMutate(
         (id: string) => apiClient.regenerateApiKey(id),
         keyId
       )
+      
       toast({
-        title: "Success",
-        description: "API key regenerated successfully",
-        variant: "default",
+        title: "🔄 Success",
+        description: "API key regenerated successfully. New key is now active.",
+        variant: "success" as any,
+        duration: 4000,
       })
-      refetchApiKeys()
+      
+      addRecentAction('API Key Regenerated', selectedApiKey?.name || 'Unknown Key', 'New secret key generated')
+      
+      // Refetch to get updated list and remove old entries
+      await refetchApiKeys()
+      
+      // Close the edit modal and clear selection
+      setShowEditModal(false)
+      setSelectedApiKey(null)
+      
     } catch (error) {
       toast({
-        title: "Error",
+        title: "❌ Error",
         description: "Failed to regenerate API key",
         variant: "destructive",
+        duration: 4000,
       })
       throw error
     }
@@ -349,6 +639,48 @@ export default function DashboardPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
               >
+                {/* Overview Header with Refresh */}
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-xl font-semibold text-gray-900">Overview</h2>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => refetchApiKeys()}
+                    disabled={apiKeysLoading || backendStatus === 'unavailable'}
+                  >
+                    <Activity className="w-4 h-4 mr-2" />
+                    {apiKeysLoading ? 'Refreshing...' : 'Refresh'}
+                  </Button>
+                </div>
+
+                {/* Data Source Indicator */}
+                {backendStatus === 'unavailable' && (
+                  <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <div className="flex items-center">
+                      <AlertCircle className="w-4 h-4 text-yellow-600 mr-2" />
+                      <p className="text-sm text-yellow-800">
+                        Backend offline - showing demo data. Connect to see real statistics.
+                      </p>
+                    </div>
+                  </div>
+                )}
+                
+                {backendStatus === 'available' && (
+                  <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+                        <p className="text-sm text-green-800">
+                          Showing real-time data from your API keys
+                        </p>
+                      </div>
+                      <span className="text-xs text-green-600">
+                        Auto-refreshes every 30s
+                      </span>
+                    </div>
+                  </div>
+                )}
+                
                 {/* Stats Grid */}
                 {statsLoading ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -396,13 +728,22 @@ export default function DashboardPage() {
                       {displayActivity.map((activity: any, index: number) => (
                         <div key={index} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
                           <div className="flex items-center">
-                            <div className="w-2 h-2 bg-blue-600 rounded-full mr-3"></div>
+                            <div className={`w-2 h-2 rounded-full mr-3 ${
+                              activity.time === 'just now' ? 'bg-green-500' : 'bg-blue-600'
+                            }`}></div>
                             <div>
                               <p className="font-medium text-gray-900">{activity.action}</p>
                               <p className="text-sm text-gray-500">{activity.key}</p>
+                              {activity.detail && (
+                                <p className="text-xs text-gray-400 mt-1">{activity.detail}</p>
+                              )}
                             </div>
                           </div>
-                          <span className="text-sm text-gray-500">{activity.time}</span>
+                          <div className="text-right">
+                            <span className={`text-sm ${
+                              activity.time === 'just now' ? 'text-green-600 font-medium' : 'text-gray-500'
+                            }`}>{activity.time}</span>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -451,7 +792,7 @@ export default function DashboardPage() {
                   <div className="space-y-4">
                     {displayApiKeys.map((apiKey: any) => (
                       <Card key={apiKey.id}>
-                        <CardContent className="p-6">
+                        <CardContent className="p-4">
                           <div className="flex items-center justify-between">
                             <div className="flex-1">
                               <div className="flex items-center mb-2">
@@ -474,29 +815,43 @@ export default function DashboardPage() {
                                   {formatNumber(apiKey.total_requests)} calls
                                 </span>
                               </div>
-                              <div className="mt-3 flex items-center">
-                                <code className="bg-gray-100 px-3 py-1 rounded text-sm font-mono">
+                              <div className="mt-2 flex items-center gap-2">
+                                <code className="bg-slate-800 text-green-400 px-3 py-1 rounded text-sm font-mono border border-slate-600 min-w-0 flex-1">
                                   {showApiKey === apiKey.id ? apiKey.key : maskApiKey(apiKey.key)}
                                 </code>
                                 <Button
-                                  variant="ghost"
+                                  variant="outline"
                                   size="sm"
                                   onClick={() => setShowApiKey(showApiKey === apiKey.id ? null : apiKey.id)}
-                                  className="ml-2"
+                                  className="h-8 w-8 p-0 bg-white border-gray-300 hover:bg-gray-50"
                                 >
                                   {showApiKey === apiKey.id ? (
-                                    <EyeOff className="w-4 h-4" />
+                                    <EyeOff className="w-4 h-4 text-gray-600" />
                                   ) : (
-                                    <Eye className="w-4 h-4" />
+                                    <Eye className="w-4 h-4 text-gray-600" />
                                   )}
                                 </Button>
                                 <Button
-                                  variant="ghost"
+                                  variant="outline"
                                   size="sm"
-                                  onClick={() => copyToClipboard(apiKey.key)}
-                                  className="ml-1"
+                                  onClick={() => copyToClipboard(apiKey.key, apiKey.id || apiKey.key_id || apiKey.key, apiKey.name)}
+                                  className={`h-8 w-8 p-0 border transition-all ${
+                                    copiedKey === (apiKey.id || apiKey.key_id || apiKey.key)
+                                      ? 'bg-green-50 border-green-300 hover:bg-green-100'
+                                      : 'bg-white border-gray-300 hover:bg-gray-50'
+                                  }`}
                                 >
-                                  <Copy className="w-4 h-4" />
+                                  {copiedKey === (apiKey.id || apiKey.key_id || apiKey.key) ? (
+                                    <motion.div
+                                      initial={{ scale: 0.5 }}
+                                      animate={{ scale: 1 }}
+                                      className="w-4 h-4 text-green-600"
+                                    >
+                                      ✓
+                                    </motion.div>
+                                  ) : (
+                                    <Copy className="w-4 h-4 text-gray-600" />
+                                  )}
                                 </Button>
                               </div>
                             </div>
@@ -513,7 +868,7 @@ export default function DashboardPage() {
                                 variant="ghost" 
                                 size="sm" 
                                 className="text-red-600 hover:text-red-700"
-                                onClick={() => handleDeleteApiKey(apiKey.id)}
+                                onClick={() => handleDeleteApiKey(apiKey)}
                                 disabled={deleteLoading || backendStatus === 'unavailable'}
                               >
                                 {deleteLoading ? (

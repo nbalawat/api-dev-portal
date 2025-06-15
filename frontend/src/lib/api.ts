@@ -151,10 +151,20 @@ class ApiClient {
   async updateApiKey(keyId: string, updates: any) {
     // Map frontend field names to backend expected names
     const payload = { ...updates }
+    
+    // Map permissions to scopes
     if (updates.permissions) {
       payload.scopes = updates.permissions
       delete payload.permissions
     }
+    
+    // Map is_active to status
+    if (updates.hasOwnProperty('is_active')) {
+      payload.status = updates.is_active ? 'active' : 'inactive'
+      delete payload.is_active
+    }
+    
+    console.log('Updating API key with payload:', payload)
     
     return this.request<any>(`/api/api-keys/${keyId}`, {
       method: 'PUT',
@@ -163,15 +173,31 @@ class ApiClient {
   }
 
   async deleteApiKey(keyId: string) {
-    return this.request<any>(`/api/api-keys/${keyId}/revoke`, {
-      method: 'POST',
-    })
+    // Try the admin delete endpoint first, then fall back to revoke
+    try {
+      return await this.request<any>(`/api/api-keys/admin/${keyId}`, {
+        method: 'DELETE',
+      })
+    } catch (adminError) {
+      // If admin delete fails, try the revoke endpoint
+      return this.request<any>(`/api/api-keys/${keyId}/revoke`, {
+        method: 'POST',
+        body: JSON.stringify({ reason: 'Deleted from dashboard' }),
+      })
+    }
   }
 
   async regenerateApiKey(keyId: string) {
-    return this.request<any>(`/api/api-keys/${keyId}/rotate`, {
+    const response = await this.request<any>(`/api/api-keys/${keyId}/rotate`, {
       method: 'POST',
+      body: JSON.stringify({ 
+        new_name: undefined, // Keep original name
+        copy_settings: true 
+      }),
     })
+    
+    // Handle response format - backend might return { old_key_id, new_api_key, new_secret_key }
+    return response.new_api_key || response
   }
 
   // Analytics

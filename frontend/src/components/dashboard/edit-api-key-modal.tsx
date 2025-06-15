@@ -84,8 +84,18 @@ export function EditApiKeyModal({
       return
     }
 
+    // Use the correct ID field - try multiple possible field names
+    const keyId = apiKey.id || apiKey.key_id || apiKey.key
+    
+    console.log('Edit modal updating API key:', { apiKey, keyId, formData })
+    
+    if (!keyId) {
+      setErrors({ submit: 'Cannot identify API key ID' })
+      return
+    }
+
     try {
-      await onUpdateKey(apiKey.id, formData)
+      await onUpdateKey(keyId, formData)
       onClose()
     } catch (error) {
       setErrors({ submit: 'Failed to update API key. Please try again.' })
@@ -134,7 +144,7 @@ export function EditApiKeyModal({
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto mx-4"
+          className="relative w-full max-w-4xl max-h-[90vh] overflow-y-auto mx-4"
         >
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-4">
@@ -143,7 +153,7 @@ export function EditApiKeyModal({
                   <Key className="w-5 h-5 text-blue-600" />
                 </div>
                 <div>
-                  <CardTitle>Edit API Key</CardTitle>
+                  <CardTitle className="text-gray-900">Edit API Key</CardTitle>
                   <p className="text-sm text-gray-500">Modify settings for "{apiKey.name}"</p>
                 </div>
               </div>
@@ -153,15 +163,15 @@ export function EditApiKeyModal({
             </CardHeader>
 
             <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-6">
+              <form onSubmit={handleSubmit} className="space-y-4">
                 {/* API Key Display */}
                 <div className="p-4 bg-gray-50 rounded-lg">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     API Key
                   </label>
                   <div className="flex items-center gap-2">
-                    <code className="flex-1 px-3 py-2 bg-white border border-gray-300 rounded text-sm font-mono">
-                      {apiKey.key.slice(0, 12)}...{apiKey.key.slice(-8)}
+                    <code className="flex-1 px-3 py-2 bg-slate-800 text-green-400 border border-slate-600 rounded text-sm font-mono">
+                      {(apiKey.key_id || apiKey.key || '').slice(0, 12)}...{(apiKey.key_id || apiKey.key || '').slice(-8)}
                     </code>
                     <Button
                       type="button"
@@ -180,36 +190,40 @@ export function EditApiKeyModal({
                 </div>
 
                 {/* Basic Information */}
-                <div className="space-y-4">
-                  <h3 className="font-medium text-gray-900">Basic Information</h3>
+                <div className="space-y-3">
+                  <h3 className="font-semibold text-gray-900">Basic Information</h3>
                   
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      API Key Name *
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.name}
-                      onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                        errors.name ? 'border-red-300' : 'border-gray-300'
-                      }`}
-                    />
-                    {errors.name && (
-                      <p className="mt-1 text-sm text-red-600">{errors.name}</p>
-                    )}
-                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        API Key Name *
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.name}
+                        onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                        placeholder="e.g., Production API"
+                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                          errors.name ? 'border-red-300' : 'border-gray-300'
+                        }`}
+                      />
+                      {errors.name && (
+                        <p className="mt-1 text-sm text-red-600">{errors.name}</p>
+                      )}
+                    </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Description
-                    </label>
-                    <textarea
-                      value={formData.description}
-                      onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                      rows={3}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Description
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.description}
+                        onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                        placeholder="Optional description"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
                   </div>
 
                   <div className="flex items-center gap-2">
@@ -230,12 +244,14 @@ export function EditApiKeyModal({
                 </div>
 
                 {/* Permissions */}
-                <div className="space-y-4">
-                  <h3 className="font-medium text-gray-900">Permissions</h3>
-                  {errors.permissions && (
-                    <p className="text-sm text-red-600">{errors.permissions}</p>
-                  )}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-semibold text-gray-900">Permissions</h3>
+                    {errors.permissions && (
+                      <p className="text-sm text-red-600">{errors.permissions}</p>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                     {availablePermissions.map((permission) => {
                       const isSelected = formData.permissions.includes(permission.id)
                       return (
@@ -243,22 +259,19 @@ export function EditApiKeyModal({
                           key={permission.id}
                           type="button"
                           onClick={() => togglePermission(permission.id)}
-                          className={`p-4 border-2 rounded-lg text-left transition-all ${
+                          className={`p-2 border rounded-lg text-left transition-all ${
                             isSelected
                               ? 'border-blue-500 bg-blue-50'
                               : 'border-gray-200 hover:border-gray-300'
                           }`}
                         >
-                          <div className="flex items-start gap-3">
-                            <permission.icon className={`w-5 h-5 mt-0.5 ${
+                          <div className="flex items-center gap-2">
+                            <permission.icon className={`w-4 h-4 ${
                               isSelected ? 'text-blue-600' : 'text-gray-400'
                             }`} />
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <span className="font-medium text-gray-900">{permission.label}</span>
-                                {isSelected && <Badge variant="default" className="text-xs">Selected</Badge>}
-                              </div>
-                              <p className="text-sm text-gray-500">{permission.description}</p>
+                            <div className="flex-1 min-w-0">
+                              <span className="text-sm font-medium text-gray-900 block truncate">{permission.label}</span>
+                              {isSelected && <Badge variant="default" className="text-xs mt-1">Selected</Badge>}
                             </div>
                           </div>
                         </button>
@@ -269,7 +282,7 @@ export function EditApiKeyModal({
 
                 {/* Rate Limiting */}
                 <div className="space-y-4">
-                  <h3 className="font-medium text-gray-900">Rate Limiting</h3>
+                  <h3 className="font-semibold text-gray-900">Rate Limiting</h3>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Requests per hour
@@ -326,8 +339,8 @@ export function EditApiKeyModal({
             >
               <h3 className="text-lg font-semibold text-gray-900 mb-2">Regenerate API Key?</h3>
               <p className="text-gray-600 mb-4">
-                This will generate a new API key and invalidate the current one. 
-                Any applications using the current key will stop working until updated.
+                This will generate a new API key value while keeping the same name and settings. 
+                The current key will be invalidated immediately. Any applications using the current key will stop working until updated with the new key.
               </p>
               <div className="flex justify-end gap-3">
                 <Button

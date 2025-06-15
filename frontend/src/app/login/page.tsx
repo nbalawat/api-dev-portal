@@ -50,9 +50,10 @@ export default function LoginPage() {
       const errorMessage = error?.message || 'Invalid email or password'
       setErrors({ submit: errorMessage })
       toast({
-        title: "Login failed",
+        title: "❌ Login Failed",
         description: errorMessage,
         variant: "destructive",
+        duration: 4000,
       })
     } finally {
       setIsLoading(false)
@@ -72,16 +73,18 @@ export default function LoginPage() {
         password: 'admin123'
       })
       toast({
-        title: "Demo login successful!",
+        title: "✅ Demo Login Successful!",
         description: "Welcome to the API Developer Portal.",
-        variant: "default",
+        variant: "success" as any,
+        duration: 3000,
       })
       router.push('/dashboard')
     } catch (error: any) {
       toast({
-        title: "Demo login failed",
+        title: "❌ Demo Login Failed",
         description: error?.message || 'Please try again',
         variant: "destructive",
+        duration: 4000,
       })
     } finally {
       setIsLoading(false)

@@ -95,7 +95,7 @@ else:
 app.include_router(auth.router, prefix="/api", tags=["Authentication"])
 app.include_router(users.router, prefix="/api", tags=["Users"])
 app.include_router(api_keys.router, prefix="/api", tags=["API Keys"])
-app.include_router(api_v1.router, prefix="/api/v1", tags=["API v1"])
+app.include_router(api_v1.router, tags=["API v1"])
 app.include_router(permissions.router, prefix="/api", tags=["Permissions"])
 app.include_router(rate_limits.router, prefix="/api", tags=["Rate Limits"])
 app.include_router(analytics.router, prefix="/api", tags=["Analytics"])

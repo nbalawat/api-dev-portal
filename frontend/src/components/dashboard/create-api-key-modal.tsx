@@ -126,7 +126,7 @@ export function CreateApiKeyModal({
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto mx-4"
+          className="relative w-full max-w-4xl max-h-[90vh] overflow-y-auto mx-4"
         >
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-4">
@@ -135,7 +135,7 @@ export function CreateApiKeyModal({
                   <Key className="w-5 h-5 text-blue-600" />
                 </div>
                 <div>
-                  <CardTitle>Create New API Key</CardTitle>
+                  <CardTitle className="text-gray-900">Create New API Key</CardTitle>
                   <p className="text-sm text-gray-500">Generate a new API key for your application</p>
                 </div>
               </div>
@@ -145,50 +145,54 @@ export function CreateApiKeyModal({
             </CardHeader>
 
             <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-6">
+              <form onSubmit={handleSubmit} className="space-y-4">
                 {/* Basic Information */}
-                <div className="space-y-4">
-                  <h3 className="font-medium text-gray-900">Basic Information</h3>
+                <div className="space-y-3">
+                  <h3 className="font-semibold text-gray-900">Basic Information</h3>
                   
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      API Key Name *
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.name}
-                      onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                      placeholder="e.g., Production API, Mobile App Key"
-                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                        errors.name ? 'border-red-300' : 'border-gray-300'
-                      }`}
-                    />
-                    {errors.name && (
-                      <p className="mt-1 text-sm text-red-600">{errors.name}</p>
-                    )}
-                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        API Key Name *
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.name}
+                        onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                        placeholder="e.g., Production API"
+                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                          errors.name ? 'border-red-300' : 'border-gray-300'
+                        }`}
+                      />
+                      {errors.name && (
+                        <p className="mt-1 text-sm text-red-600">{errors.name}</p>
+                      )}
+                    </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Description
-                    </label>
-                    <textarea
-                      value={formData.description}
-                      onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                      placeholder="Optional description of what this key will be used for"
-                      rows={3}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Description
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.description}
+                        onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                        placeholder="Optional description"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
                   </div>
                 </div>
 
                 {/* Permissions */}
-                <div className="space-y-4">
-                  <h3 className="font-medium text-gray-900">Permissions</h3>
-                  {errors.permissions && (
-                    <p className="text-sm text-red-600">{errors.permissions}</p>
-                  )}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-semibold text-gray-900">Permissions</h3>
+                    {errors.permissions && (
+                      <p className="text-sm text-red-600">{errors.permissions}</p>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                     {availablePermissions.map((permission) => {
                       const isSelected = formData.permissions.includes(permission.id)
                       return (
@@ -196,22 +200,19 @@ export function CreateApiKeyModal({
                           key={permission.id}
                           type="button"
                           onClick={() => togglePermission(permission.id)}
-                          className={`p-4 border-2 rounded-lg text-left transition-all ${
+                          className={`p-2 border rounded-lg text-left transition-all ${
                             isSelected
                               ? 'border-blue-500 bg-blue-50'
                               : 'border-gray-200 hover:border-gray-300'
                           }`}
                         >
-                          <div className="flex items-start gap-3">
-                            <permission.icon className={`w-5 h-5 mt-0.5 ${
+                          <div className="flex items-center gap-2">
+                            <permission.icon className={`w-4 h-4 ${
                               isSelected ? 'text-blue-600' : 'text-gray-400'
                             }`} />
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <span className="font-medium text-gray-900">{permission.label}</span>
-                                {isSelected && <Badge variant="default" className="text-xs">Selected</Badge>}
-                              </div>
-                              <p className="text-sm text-gray-500">{permission.description}</p>
+                            <div className="flex-1 min-w-0">
+                              <span className="text-sm font-medium text-gray-900 block truncate">{permission.label}</span>
+                              {isSelected && <Badge variant="default" className="text-xs mt-1">Selected</Badge>}
                             </div>
                           </div>
                         </button>
@@ -220,60 +221,62 @@ export function CreateApiKeyModal({
                   </div>
                 </div>
 
-                {/* Rate Limiting */}
-                <div className="space-y-4">
-                  <h3 className="font-medium text-gray-900">Rate Limiting</h3>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {/* Rate Limiting & Expiration */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="space-y-3">
+                    <h3 className="font-semibold text-gray-900">Rate Limiting</h3>
+                    <div className="grid grid-cols-2 gap-2">
                     {rateLimitPresets.map((preset) => (
                       <button
                         key={preset.value}
                         type="button"
                         onClick={() => setFormData(prev => ({ ...prev, rate_limit: preset.value }))}
-                        className={`p-3 border-2 rounded-lg text-center transition-all ${
+                        className={`p-2 border rounded-lg text-center transition-all h-16 flex flex-col justify-center ${
                           formData.rate_limit === preset.value
                             ? 'border-blue-500 bg-blue-50'
                             : 'border-gray-200 hover:border-gray-300'
                         }`}
                       >
-                        <div className="font-medium text-gray-900">{preset.label}</div>
+                        <div className="text-sm font-medium text-gray-900">{preset.label}</div>
                         <div className="text-xs text-gray-500">{preset.description}</div>
                       </button>
                     ))}
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Custom Rate Limit
+                      </label>
+                      <input
+                        type="number"
+                        value={formData.rate_limit}
+                        onChange={(e) => setFormData(prev => ({ ...prev, rate_limit: parseInt(e.target.value) || 0 }))}
+                        min="1"
+                        max="1000000"
+                        className="w-full px-3 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="requests/hour"
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Custom Rate Limit (requests per hour)
-                    </label>
-                    <input
-                      type="number"
-                      value={formData.rate_limit}
-                      onChange={(e) => setFormData(prev => ({ ...prev, rate_limit: parseInt(e.target.value) || 0 }))}
-                      min="1"
-                      max="1000000"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                  </div>
-                </div>
 
-                {/* Expiration */}
-                <div className="space-y-4">
-                  <h3 className="font-medium text-gray-900">Expiration</h3>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    {expirationOptions.map((option) => (
-                      <button
-                        key={option.value || 'never'}
-                        type="button"
-                        onClick={() => setFormData(prev => ({ ...prev, expires_in_days: option.value }))}
-                        className={`p-3 border-2 rounded-lg text-center transition-all ${
-                          formData.expires_in_days === option.value
-                            ? 'border-blue-500 bg-blue-50'
-                            : 'border-gray-200 hover:border-gray-300'
-                        }`}
-                      >
-                        <div className="font-medium text-gray-900">{option.label}</div>
-                        <div className="text-xs text-gray-500">{option.description}</div>
-                      </button>
-                    ))}
+                  <div className="space-y-3">
+                    <h3 className="font-semibold text-gray-900">Expiration</h3>
+                    <div className="grid grid-cols-2 gap-2">
+                      {expirationOptions.map((option) => (
+                        <button
+                          key={option.value || 'never'}
+                          type="button"
+                          onClick={() => setFormData(prev => ({ ...prev, expires_in_days: option.value }))}
+                          className={`p-2 border rounded-lg text-center transition-all h-16 flex flex-col justify-center ${
+                            formData.expires_in_days === option.value
+                              ? 'border-blue-500 bg-blue-50'
+                              : 'border-gray-200 hover:border-gray-300'
+                          }`}
+                        >
+                          <div className="text-sm font-medium text-gray-900">{option.label}</div>
+                          <div className="text-xs text-gray-500">{option.description}</div>
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
 
