@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { AuthWrapper } from '@/components/auth-wrapper'
 import { motion } from 'framer-motion'
 import { 
   BarChart3, 
@@ -73,19 +74,25 @@ export default function DashboardPage() {
       id: '1',
       name: 'Production API',
       key: 'sk_prod_1234567890abcdef',
+      key_id: 'ak_prod_1234567890abcdef',
       created_at: '2024-01-15T00:00:00Z',
-      last_used: '2024-06-15T10:00:00Z',
+      last_used_at: '2024-06-15T10:00:00Z',
       total_requests: 1200000,
-      is_active: true
+      is_active: true,
+      status: 'active',
+      permissions: ['read', 'write']
     },
     {
       id: '2', 
       name: 'Development API',
       key: 'sk_dev_abcdef1234567890',
+      key_id: 'ak_dev_abcdef1234567890',
       created_at: '2024-01-10T00:00:00Z',
-      last_used: '2024-06-15T11:55:00Z',
+      last_used_at: '2024-06-15T11:55:00Z',
       total_requests: 450000,
-      is_active: true
+      is_active: true,
+      status: 'active',
+      permissions: ['read']
     }
   ]
 
@@ -97,8 +104,14 @@ export default function DashboardPage() {
   ]
 
   // Use real data if available, otherwise fallback to mock data
-  const displayStats = usageStats || mockStats
-  const displayApiKeys = apiKeys || mockApiKeys
+  const displayStats = Array.isArray(usageStats) ? usageStats : mockStats
+  const displayApiKeys = Array.isArray(apiKeys) ? apiKeys.map((key: any) => ({
+    ...key,
+    permissions: key.scopes || key.permissions || ['read'], // Map scopes to permissions for frontend
+    key: key.key_id || key.key, // Map key_id to key for display
+    last_used: key.last_used_at || key.last_used, // Map last_used_at to last_used
+    is_active: key.status === 'active' // Map status to is_active
+  })) : mockApiKeys
   const displayActivity = mockActivity // Always use mock for now
 
   const navigation = [
@@ -256,7 +269,8 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <AuthWrapper>
+      <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -780,6 +794,7 @@ export default function DashboardPage() {
         isLoading={updateLoading}
         isRegenerating={regenerateLoading}
       />
-    </div>
+      </div>
+    </AuthWrapper>
   )
 }

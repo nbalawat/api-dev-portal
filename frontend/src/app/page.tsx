@@ -93,7 +93,8 @@ export default function HomePage() {
           <div className="hidden md:flex items-center space-x-6 text-sm">
             <a href="#features" className="text-gray-700 hover:text-blue-600 transition-colors font-medium">Features</a>
             <a href="#docs" className="text-gray-700 hover:text-blue-600 transition-colors font-medium">Docs</a>
-            <a href="/dashboard" className="btn-enterprise">Dashboard</a>
+            <a href="/login" className="text-gray-700 hover:text-blue-600 transition-colors font-medium">Sign In</a>
+            <a href="/register" className="btn-enterprise">Get Started</a>
           </div>
         </div>
       </motion.nav>
@@ -131,7 +132,7 @@ export default function HomePage() {
             variants={itemVariants}
           >
             <motion.a 
-              href="/dashboard" 
+              href="/register" 
               className="btn-enterprise group inline-flex items-center text-lg"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}

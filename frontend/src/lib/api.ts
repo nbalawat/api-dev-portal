@@ -118,7 +118,9 @@ class ApiClient {
 
   // API Keys
   async getApiKeys() {
-    return this.request<any[]>('/api/api-keys/')
+    const response = await this.request<any>('/api/api-keys/')
+    // Handle paginated response - extract the api_keys array
+    return response.api_keys || response
   }
 
   async createApiKey(keyData: {
@@ -128,16 +130,35 @@ class ApiClient {
     rate_limit?: number
     expires_in_days?: number
   }) {
-    return this.request<any>('/api/api-keys/', {
+    // Map frontend field names to backend expected names
+    const payload = {
+      name: keyData.name,
+      description: keyData.description,
+      scopes: keyData.permissions || ['read'], // Map permissions to scopes
+      rate_limit: keyData.rate_limit,
+      expires_in_days: keyData.expires_in_days
+    }
+    
+    const response = await this.request<any>('/api/api-keys/', {
       method: 'POST',
-      body: JSON.stringify(keyData),
+      body: JSON.stringify(payload),
     })
+    
+    // Handle response format - backend returns { api_key: {...}, secret_key: "..." }
+    return response.api_key || response
   }
 
   async updateApiKey(keyId: string, updates: any) {
+    // Map frontend field names to backend expected names
+    const payload = { ...updates }
+    if (updates.permissions) {
+      payload.scopes = updates.permissions
+      delete payload.permissions
+    }
+    
     return this.request<any>(`/api/api-keys/${keyId}`, {
       method: 'PUT',
-      body: JSON.stringify(updates),
+      body: JSON.stringify(payload),
     })
   }
 
