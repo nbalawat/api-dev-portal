@@ -221,3 +221,6 @@ downloads/
 # Redis dumps
 dump.rdb
 appendonly.aof
+
+# node modules
+node_modules

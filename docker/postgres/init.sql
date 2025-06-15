@@ -32,9 +32,13 @@ CREATE TABLE IF NOT EXISTS users (
     role user_role DEFAULT 'developer',
     is_active BOOLEAN DEFAULT true,
     is_verified BOOLEAN DEFAULT false,
+    is_superuser BOOLEAN DEFAULT false,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    last_login TIMESTAMP WITH TIME ZONE
+    last_login TIMESTAMP WITH TIME ZONE,
+    avatar_url VARCHAR(500),
+    bio VARCHAR(500),
+    timezone VARCHAR(50) DEFAULT 'UTC'
 );
 
 -- API Keys table
@@ -43,13 +47,22 @@ CREATE TABLE IF NOT EXISTS api_keys (
     key_id VARCHAR(50) UNIQUE NOT NULL,
     key_hash VARCHAR(255) NOT NULL,
     name VARCHAR(100),
+    description VARCHAR(500),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     status api_key_status DEFAULT 'active',
     scopes TEXT[],
     expires_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    last_used_at TIMESTAMP WITH TIME ZONE
+    last_used_at TIMESTAMP WITH TIME ZONE,
+    allowed_ips JSONB,
+    allowed_domains JSONB,
+    rate_limit INTEGER DEFAULT 1000,
+    rate_limit_period VARCHAR(50) DEFAULT 'requests_per_hour',
+    total_requests INTEGER DEFAULT 0,
+    requests_today INTEGER DEFAULT 0,
+    last_request_reset TIMESTAMP WITH TIME ZONE,
+    extra_data JSONB DEFAULT '{}'
 );
 
 -- API Logs table
@@ -125,7 +138,7 @@ CREATE TRIGGER update_api_keys_updated_at
 INSERT INTO users (username, email, hashed_password, full_name, role, is_active, is_verified)
 VALUES (
     'admin',
-    'admin@devportal.local',
+    'admin@example.com',
     '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LeNaJMKr8KIYzqQai',
     'System Administrator',
     'admin',
@@ -137,7 +150,7 @@ VALUES (
 INSERT INTO users (username, email, hashed_password, full_name, role, is_active, is_verified)
 VALUES (
     'developer',
-    'developer@devportal.local',
+    'developer@example.com',
     '$2b$12$9Q1c7y4qBWVHxkd0LHAkCOYz6TtxMQJqhN8/LeNaJMKr8KIYzqQai',
     'Sample Developer',
     'developer',
@@ -149,7 +162,7 @@ VALUES (
 INSERT INTO users (username, email, hashed_password, full_name, role, is_active, is_verified)
 VALUES (
     'viewer',
-    'viewer@devportal.local',
+    'viewer@example.com',
     '$2b$12$8P1c7y4qBWVHxkd0LHAkCOYz6TtxMQJqhN8/LeNaJMKr8KIYzqQai',
     'Sample Viewer',
     'viewer',

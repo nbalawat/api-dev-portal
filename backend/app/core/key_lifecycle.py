@@ -196,7 +196,7 @@ class APIKeyLifecycleManager:
                         update(APIKey)
                         .where(APIKey.id == api_key.id)
                         .values(
-                            status=APIKeyStatus.expired,
+                            status=APIKeyStatus.inactive,
                             updated_at=now
                         )
                     )
@@ -317,7 +317,7 @@ class APIKeyLifecycleManager:
                     transition_message = "Old key immediately revoked due to security concern"
                 else:
                     # Mark old key as deprecated with transition period
-                    old_api_key.status = APIKeyStatus.suspended  # Use suspended as deprecated
+                    old_api_key.status = APIKeyStatus.inactive  # Use inactive as deprecated
                     old_api_key.updated_at = datetime.utcnow()
                     
                     # Set expiration for transition period
@@ -516,9 +516,7 @@ class APIKeyLifecycleManager:
                 # Determine lifecycle status
                 if api_key.status == APIKeyStatus.revoked:
                     lifecycle_status = LifecycleStatus.REVOKED
-                elif api_key.status == APIKeyStatus.expired:
-                    lifecycle_status = LifecycleStatus.EXPIRED
-                elif api_key.status == APIKeyStatus.suspended:
+                elif api_key.status == APIKeyStatus.inactive:
                     lifecycle_status = LifecycleStatus.DEPRECATED
                 elif api_key.expires_at:
                     days_until_expiry = (api_key.expires_at - now).days

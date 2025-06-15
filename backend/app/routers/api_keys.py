@@ -477,7 +477,7 @@ async def bulk_api_key_operation(
             if bulk_operation.operation == "revoke":
                 api_key.status = APIKeyStatus.revoked
             elif bulk_operation.operation == "suspend":
-                api_key.status = APIKeyStatus.suspended
+                api_key.status = APIKeyStatus.inactive
             elif bulk_operation.operation == "activate":
                 api_key.status = APIKeyStatus.active
             

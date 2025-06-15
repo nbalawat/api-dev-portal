@@ -16,7 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_, desc, text
 from sqlalchemy.orm import sessionmaker
 
-from ..core.database import get_db
+from ..core.database import async_session
 from ..models.api_key import APIKey
 from ..models.user import User
 
@@ -112,7 +112,7 @@ class ActivityLogger:
     
     async def start(self):
         """Start the activity logging service."""
-        self._db_session_factory = get_async_session()
+        self._db_session_factory = async_session
         self._flush_task = asyncio.create_task(self._periodic_flush())
         print("✅ Activity logging service started")
     

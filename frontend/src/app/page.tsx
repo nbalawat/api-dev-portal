@@ -77,9 +77,9 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-mesh overflow-hidden selection-primary">
       {/* Background Effects */}
-      <div className="absolute inset-0 bg-gradient-to-br from-slate-50/50 via-primary-50/30 to-slate-100/50" />
-      <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary-200/20 rounded-full blur-3xl animate-float" />
-      <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-success-200/20 rounded-full blur-3xl animate-float delay-1000" />
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-50/80 via-white to-purple-50/60" />
+      <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-400/10 rounded-full blur-3xl animate-float" />
+      <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-purple-400/10 rounded-full blur-3xl animate-float delay-1000" />
       
       {/* Navigation */}
       <motion.nav 
@@ -91,8 +91,8 @@ export default function HomePage() {
         <div className="flex items-center space-x-8">
           <div className="text-gradient font-bold text-lg">API Portal</div>
           <div className="hidden md:flex items-center space-x-6 text-sm">
-            <a href="#features" className="hover:text-primary transition-colors">Features</a>
-            <a href="#docs" className="hover:text-primary transition-colors">Docs</a>
+            <a href="#features" className="text-gray-700 hover:text-blue-600 transition-colors font-medium">Features</a>
+            <a href="#docs" className="text-gray-700 hover:text-blue-600 transition-colors font-medium">Docs</a>
             <a href="/dashboard" className="btn-enterprise">Dashboard</a>
           </div>
         </div>
@@ -100,15 +100,15 @@ export default function HomePage() {
 
       {/* Hero Section */}
       <motion.div 
-        className="relative z-10 pt-32 pb-20 px-4"
+        className="relative z-10 pt-24 pb-12 px-4"
         variants={containerVariants}
         initial="hidden"
         animate={controls}
       >
-        <div className="max-w-7xl mx-auto text-center">
+        <div className="max-w-6xl mx-auto text-center">
           <motion.div variants={itemVariants}>
             <motion.h1 
-              className="text-gradient text-6xl md:text-7xl lg:text-8xl font-bold tracking-tight mb-8"
+              className="text-gradient text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-6"
               initial={{ scale: 0.9 }}
               animate={{ scale: 1 }}
               transition={{ duration: 0.8, ease: "easeOut" }}
@@ -118,21 +118,21 @@ export default function HomePage() {
           </motion.div>
 
           <motion.div variants={itemVariants}>
-            <p className="text-xl md:text-2xl text-slate-600 mb-12 max-w-4xl mx-auto leading-relaxed">
+            <p className="text-lg md:text-xl text-gray-600 mb-8 max-w-3xl mx-auto leading-relaxed">
               Enterprise-grade API management with 
-              <span className="text-gradient font-semibold"> authentication</span>, 
-              <span className="text-gradient font-semibold"> analytics</span>, and 
-              <span className="text-gradient font-semibold"> comprehensive documentation</span>.
+              <span className="text-blue-600 font-semibold"> authentication</span>, 
+              <span className="text-blue-600 font-semibold"> analytics</span>, and 
+              <span className="text-blue-600 font-semibold"> comprehensive documentation</span>.
             </p>
           </motion.div>
 
           <motion.div 
-            className="flex flex-col sm:flex-row items-center justify-center gap-6 mb-20"
+            className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12"
             variants={itemVariants}
           >
             <motion.a 
               href="/dashboard" 
-              className="btn-enterprise group text-lg px-8 py-4"
+              className="btn-enterprise group inline-flex items-center text-lg"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
@@ -141,7 +141,7 @@ export default function HomePage() {
             </motion.a>
             <motion.a 
               href="/api/docs" 
-              className="btn-secondary group text-lg px-8 py-4"
+              className="btn-secondary group inline-flex items-center text-lg"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
@@ -152,7 +152,7 @@ export default function HomePage() {
 
           {/* Stats Section */}
           <motion.div 
-            className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-20"
+            className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12"
             variants={itemVariants}
           >
             {stats.map((stat, index) => (
@@ -176,24 +176,24 @@ export default function HomePage() {
       {/* Features Section */}
       <motion.section 
         id="features"
-        className="relative z-10 py-20 px-4"
+        className="relative z-10 py-12 px-4"
         initial={{ opacity: 0 }}
         whileInView={{ opacity: 1 }}
         transition={{ duration: 0.8 }}
         viewport={{ once: true }}
       >
-        <div className="max-w-7xl mx-auto">
+        <div className="max-w-6xl mx-auto">
           <motion.div 
-            className="text-center mb-16"
-            initial={{ y: 50, opacity: 0 }}
+            className="text-center mb-10"
+            initial={{ y: 30, opacity: 0 }}
             whileInView={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.6 }}
             viewport={{ once: true }}
           >
-            <h2 className="text-4xl md:text-5xl font-bold text-slate-900 mb-6">
+            <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">
               Enterprise Features
             </h2>
-            <p className="text-xl text-slate-600 max-w-3xl mx-auto">
+            <p className="text-lg text-slate-600 max-w-2xl mx-auto">
               Comprehensive API management platform designed for modern enterprises
             </p>
           </motion.div>

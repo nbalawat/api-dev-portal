@@ -7,16 +7,16 @@ from typing import List, Optional, Dict, Any
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field, validator
-from sqlmodel import SQLModel, Field, Relationship, Column, JSON
-from sqlalchemy import DateTime, func
+from sqlmodel import SQLModel, Field, Relationship, Column
+from sqlalchemy import DateTime, func, Enum as SQLEnum, ARRAY, Text
+from sqlalchemy.dialects.postgresql import JSONB
 
 
 class APIKeyStatus(str, Enum):
     """API Key status enumeration."""
     active = "active"
+    inactive = "inactive"
     revoked = "revoked"
-    expired = "expired"
-    suspended = "suspended"
 
 
 class APIKeyScope(str, Enum):
@@ -55,17 +55,20 @@ class APIKey(SQLModel, table=True):
     user_id: UUID = Field(foreign_key="users.id", index=True)
     user: Optional["User"] = Relationship(back_populates="api_keys")
     
-    # Status and Lifecycle
-    status: APIKeyStatus = Field(default=APIKeyStatus.active)
+    # Status and Lifecycle  
+    status: APIKeyStatus = Field(
+        default=APIKeyStatus.active,
+        sa_column=Column(SQLEnum(APIKeyStatus, name="api_key_status"))
+    )
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow, sa_column=Column(DateTime, onupdate=func.now()))
     last_used_at: Optional[datetime] = Field(default=None)
     expires_at: Optional[datetime] = Field(default=None)
     
     # Permissions and Scopes
-    scopes: List[str] = Field(default_factory=list, sa_column=Column(JSON))
-    allowed_ips: Optional[List[str]] = Field(default=None, sa_column=Column(JSON))
-    allowed_domains: Optional[List[str]] = Field(default=None, sa_column=Column(JSON))
+    scopes: List[str] = Field(default_factory=list, sa_column=Column(ARRAY(Text)))
+    allowed_ips: Optional[List[str]] = Field(default=None, sa_column=Column(JSONB))
+    allowed_domains: Optional[List[str]] = Field(default=None, sa_column=Column(JSONB))
     
     # Rate Limiting
     rate_limit: Optional[int] = Field(default=1000)  # Requests per period
@@ -77,7 +80,7 @@ class APIKey(SQLModel, table=True):
     last_request_reset: Optional[datetime] = Field(default=None)
     
     # Metadata
-    extra_data: Optional[Dict[str, Any]] = Field(default_factory=dict, sa_column=Column(JSON))
+    extra_data: Optional[Dict[str, Any]] = Field(default_factory=dict, sa_column=Column(JSONB))
 
 
 class APIKeyUsage(SQLModel, table=True):

@@ -3,8 +3,9 @@ Database dependencies for FastAPI.
 """
 from typing import AsyncGenerator
 from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import HTTPException
 
-from ..core.database import async_session
+from ..core import database
 
 
 async def get_database() -> AsyncGenerator[AsyncSession, None]:
@@ -14,7 +15,13 @@ async def get_database() -> AsyncGenerator[AsyncSession, None]:
     Yields:
         AsyncSession: Database session
     """
-    async with async_session() as session:
+    if database.async_session is None:
+        raise HTTPException(
+            status_code=503,
+            detail="Database not initialized. Please wait for the service to fully start."
+        )
+    
+    async with database.async_session() as session:
         try:
             yield session
         except Exception:
