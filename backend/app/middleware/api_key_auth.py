@@ -92,6 +92,7 @@ class APIKeyAuthMiddleware(BaseHTTPMiddleware):
         try:
             # Get database session
             from ..core.database import async_session
+            
             async with async_session() as db:
                 validated_key = await APIKeyManager.validate_api_key(
                     db=db,
@@ -186,7 +187,11 @@ class APIKeyAuthMiddleware(BaseHTTPMiddleware):
         """Check if authentication should be skipped for this path."""
         # Skip for excluded paths
         for excluded_path in self.EXCLUDED_PATHS:
-            if path.startswith(excluded_path):
+            # Special case for root path - only match exact root
+            if excluded_path == "/" and path == "/":
+                return True
+            # For other paths, use startswith but avoid matching root
+            elif excluded_path != "/" and path.startswith(excluded_path):
                 return True
         return False
     

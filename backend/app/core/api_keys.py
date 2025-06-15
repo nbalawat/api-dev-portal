@@ -128,6 +128,7 @@ class APIKeyManager:
                     .where(APIKey.id == api_key.id)
                     .values(last_used_at=datetime.utcnow())
                 )
+                await db.commit()
                 
                 return api_key
         
