@@ -1,0 +1,193 @@
+version: '3.8'
+
+networks:
+  test-network:
+    driver: bridge
+
+volumes:
+  test-reports:
+    driver: local
+
+services:
+  # Test database - isolated from production
+  test-postgres:
+    image: postgres:15-alpine
+    container_name: test_postgres
+    environment:
+      POSTGRES_DB: testdb
+      POSTGRES_USER: testuser
+      POSTGRES_PASSWORD: testpass
+    ports:
+      - "5434:5432"
+    networks:
+      - test-network
+    tmpfs:
+      - /var/lib/postgresql/data  # In-memory for speed
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U testuser -d testdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Test Redis - isolated from production
+  test-redis:
+    image: redis:7-alpine
+    container_name: test_redis
+    ports:
+      - "6381:6379"
+    networks:
+      - test-network
+    command: redis-server --save ""  # No persistence for tests
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Main test suite runner
+  test-suite:
+    build:
+      context: .
+      target: test
+    container_name: test_suite
+    environment:
+      # Test-specific environment variables
+      - TEST_MODE=true
+      - ENVIRONMENT=test
+      - DATABASE_URL=postgresql+asyncpg://testuser:testpass@test-postgres:5432/testdb
+      - REDIS_URL=redis://test-redis:6379/0
+      - SECRET_KEY=test-secret-key-for-testing-only
+      - ADMIN_USERNAME=testadmin
+      - ADMIN_PASSWORD=testpass
+      - ADMIN_EMAIL=test@example.com
+    depends_on:
+      test-postgres:
+        condition: service_healthy
+      test-redis:
+        condition: service_healthy
+    networks:
+      - test-network
+    volumes:
+      - test-reports:/app/reports
+      - ./tests:/app/tests:ro  # Mount tests as read-only
+      - ./app:/app/app:ro      # Mount app code as read-only
+    command: |
+      sh -c "
+        echo '🧪 Starting Test Suite...' &&
+        echo '📊 Environment: Test' &&
+        echo '🗄️  Database: PostgreSQL (test-postgres:5432/testdb)' &&
+        echo '🔄 Cache: Redis (test-redis:6379/0)' &&
+        echo '' &&
+        python -m pytest tests/ -v \
+          --cov=app \
+          --cov-report=html:/app/reports/coverage \
+          --cov-report=term-missing \
+          --junitxml=/app/reports/junit.xml \
+          --tb=short
+      "
+
+  # Unit tests only (fast)
+  unit-tests:
+    build:
+      context: .
+      target: test
+    container_name: unit_tests
+    environment:
+      - TEST_MODE=true
+      - ENVIRONMENT=test
+    networks:
+      - test-network
+    volumes:
+      - test-reports:/app/reports
+      - ./tests:/app/tests:ro
+      - ./app:/app/app:ro
+    command: |
+      sh -c "
+        echo '🧪 Running Unit Tests Only...' &&
+        python -m pytest tests/ -v -m 'not integration and not e2e' \
+          --cov=app \
+          --cov-report=term-missing \
+          --tb=short
+      "
+
+  # Integration tests (requires database)
+  integration-tests:
+    build:
+      context: .
+      target: test
+    container_name: integration_tests
+    environment:
+      - TEST_MODE=true
+      - ENVIRONMENT=test
+      - DATABASE_URL=postgresql+asyncpg://testuser:testpass@test-postgres:5432/testdb
+      - REDIS_URL=redis://test-redis:6379/0
+    depends_on:
+      test-postgres:
+        condition: service_healthy
+      test-redis:
+        condition: service_healthy
+    networks:
+      - test-network
+    volumes:
+      - test-reports:/app/reports
+      - ./tests:/app/tests:ro
+      - ./app:/app/app:ro
+    command: |
+      sh -c "
+        echo '🧪 Running Integration Tests...' &&
+        python -m pytest tests/ -v -m 'integration' \
+          --cov=app \
+          --cov-report=term-missing \
+          --tb=short
+      "
+
+  # API endpoint tests (live API testing)
+  api-tests:
+    build:
+      context: .
+      target: test
+    container_name: api_tests
+    environment:
+      - TEST_MODE=true
+      - ENVIRONMENT=test
+      - API_BASE_URL=http://test-app:8000
+    depends_on:
+      - test-app
+    networks:
+      - test-network
+    volumes:
+      - ./tests:/app/tests:ro
+    command: |
+      sh -c "
+        echo '🧪 Running API Endpoint Tests...' &&
+        sleep 10 &&  # Wait for app to start
+        python -m pytest tests/ -v -m 'api' \
+          --tb=short
+      "
+
+  # Test application instance (for API testing)
+  test-app:
+    build:
+      context: .
+      target: production
+    container_name: test_app
+    environment:
+      - ENVIRONMENT=test
+      - DATABASE_URL=postgresql+asyncpg://testuser:testpass@test-postgres:5432/testdb
+      - REDIS_URL=redis://test-redis:6379/0
+      - SECRET_KEY=test-secret-key-for-testing-only
+    depends_on:
+      test-postgres:
+        condition: service_healthy
+      test-redis:
+        condition: service_healthy
+    networks:
+      - test-network
+    ports:
+      - "8001:8000"  # Different port to avoid conflicts
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
