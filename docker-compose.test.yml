@@ -83,10 +83,10 @@ services:
         echo '🔧 Creating database tables...' &&
         python scripts/create_tables.py &&
         echo '' &&
-        echo '🧪 Running tests sequentially for CI/CD reliability...' &&
+        echo '🧪 Running tests with forked processes for reliability...' &&
         python -m pytest tests/ -v \
-          --maxfail=1 \
-          -x \
+          --forked \
+          --maxfail=5 \
           --cov=app \
           --cov-report=html:/app/reports/coverage \
           --cov-report=term-missing \
