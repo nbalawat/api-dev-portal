@@ -75,7 +75,7 @@ services:
       - ./scripts:/app/scripts:ro  # Mount scripts as read-only
     command: |
       sh -c "
-        echo '🧪 Starting Test Suite...' &&
+        echo '🧪 Starting Test Suite (Sequential Execution)...' &&
         echo '📊 Environment: Test' &&
         echo '🗄️  Database: PostgreSQL (test-postgres:5432/testdb)' &&
         echo '🔄 Cache: Redis (test-redis:6379/0)' &&
@@ -83,8 +83,10 @@ services:
         echo '🔧 Creating database tables...' &&
         python scripts/create_tables.py &&
         echo '' &&
-        echo '🧪 Running tests...' &&
+        echo '🧪 Running tests sequentially for CI/CD reliability...' &&
         python -m pytest tests/ -v \
+          --maxfail=1 \
+          -x \
           --cov=app \
           --cov-report=html:/app/reports/coverage \
           --cov-report=term-missing \
