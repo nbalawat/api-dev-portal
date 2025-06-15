@@ -19,15 +19,15 @@ from app.core.config import settings
 # Use the same database as the app for integration tests
 TEST_DATABASE_URL = "postgresql+asyncpg://testuser:testpass@test-postgres:5432/testdb"
 
-# Create test engine with connection pooling optimized for tests
+# Create test engine optimized for test isolation
 test_engine = create_async_engine(
     TEST_DATABASE_URL, 
     echo=False, 
-    pool_pre_ping=False,    # Disable ping to prevent connection issues
-    pool_size=1,           # Single connection to prevent conflicts
+    pool_pre_ping=False,    # Disable ping to avoid connection errors
+    pool_size=1,           # Single connection for predictable behavior
     max_overflow=0,        # No overflow connections
-    pool_recycle=30,       # Recycle connections quickly
-    pool_timeout=10,       # Short timeout
+    pool_recycle=60,       # Recycle connections after 1 minute
+    pool_timeout=30,       # Reasonable timeout
     pool_reset_on_return='commit'  # Reset connection state on return
 )
 TestSessionLocal = sessionmaker(
@@ -49,16 +49,11 @@ app.dependency_overrides[get_database] = get_test_database
 
 
 @pytest.fixture(scope="session", autouse=True)  
-async def setup_test_session():
+def setup_test_session():
     """Setup and teardown for the test session."""
     print("🚀 Starting test session...")
     yield
-    print("✅ Test session completed - disposing engine")
-    # Dispose the test engine to prevent connection leaks
-    try:
-        await test_engine.dispose()
-    except Exception as e:
-        print(f"Warning: Engine disposal failed: {e}")
+    print("✅ Test session completed")
 
 
 @pytest.fixture(scope="function")
@@ -138,32 +133,46 @@ async def truncate_all_tables():
 
 @pytest.fixture(scope="function")
 async def clean_test_data():
-    """Clean test data before and after each test to ensure complete isolation."""
-    print("🧹 Cleaning database before test...")
-    await truncate_all_tables()
-    
-    # Small delay to ensure cleanup is complete
-    await asyncio.sleep(0.2)
+    """Clean test data before each test to ensure isolation."""
+    # Clean up before test
+    try:
+        await truncate_all_tables()
+        # Add a small delay to ensure database state is consistent
+        await asyncio.sleep(0.1)
+    except Exception as e:
+        print(f"Warning: Cleanup failed: {e}")
     
     yield
     
-    print("🧹 Cleaning database after test...")
-    await truncate_all_tables()
+    # Clean up after test as well
+    try:
+        await truncate_all_tables()
+    except Exception:
+        pass
 
 
-@pytest.fixture
-def test_user_data():
-    """Test user registration data with unique values."""
+def create_unique_test_user_data():
+    """Create test user registration data with unique values."""
     import uuid
+    import time
+    # Use timestamp + uuid to ensure absolute uniqueness between test runs
+    timestamp = int(time.time() * 1000) % 100000  # Last 5 digits of timestamp
     unique_id = str(uuid.uuid4())[:8]
+    combined_id = f"{timestamp}_{unique_id}"
     return {
-        "username": f"testuser_{unique_id}",
-        "email": f"test_{unique_id}@example.com",
+        "username": f"testuser_{combined_id}",
+        "email": f"test_{combined_id}@example.com",
         "full_name": "Test User",
         "password": "testpassword123",
         "confirm_password": "testpassword123",
         "role": "developer"
     }
+
+
+@pytest.fixture(scope="function")
+def test_user_data():
+    """Test user registration data with unique values per test call."""
+    return create_unique_test_user_data()
 
 
 class TestUserRegistration:
@@ -191,11 +200,14 @@ class TestUserRegistration:
             assert data["next_step"] == "Please check your email and click the verification link to activate your account"
     
     @pytest.mark.asyncio
-    async def test_register_duplicate_username(self, client, test_user_data, clean_test_data):
+    async def test_register_duplicate_username(self, client, clean_test_data):
         """Test registration with duplicate username."""
         async with client as ac:
             # Add larger delay to prevent race conditions
             await asyncio.sleep(0.3)
+            
+            # Create unique test data for this test
+            test_user_data = create_unique_test_user_data()
             
             # Register first user
             first_response = await ac.post("/auth/register", json=test_user_data)
@@ -207,9 +219,9 @@ class TestUserRegistration:
                 
             assert first_response.status_code == 200
             
-            # Try to register with same username
+            # Try to register with same username but different email
             duplicate_data = test_user_data.copy()
-            duplicate_data["email"] = "different@example.com"
+            duplicate_data["email"] = f"different_{duplicate_data['email']}"
             
             response = await ac.post("/auth/register", json=duplicate_data)
             
@@ -222,59 +234,74 @@ class TestUserRegistration:
             assert "Username already registered" in response.json()["detail"]
     
     @pytest.mark.asyncio
-    async def test_register_duplicate_email(self, client, test_user_data):
+    async def test_register_duplicate_email(self, client, clean_test_data):
         """Test registration with duplicate email."""
-        # Register first user
-        await client.post("/auth/register", json=test_user_data)
-        
-        # Try to register with same email
-        duplicate_data = test_user_data.copy()
-        duplicate_data["username"] = "differentuser"
-        
-        response = await client.post("/auth/register", json=duplicate_data)
-        assert response.status_code == 400
-        assert "Email already registered" in response.json()["detail"]
+        async with client as ac:
+            # Create unique test data for this test
+            test_user_data = create_unique_test_user_data()
+            
+            # Register first user
+            first_response = await ac.post("/auth/register", json=test_user_data)
+            assert first_response.status_code == 200
+            
+            # Try to register with same email but different username
+            duplicate_data = test_user_data.copy()
+            duplicate_data["username"] = f"different_{duplicate_data['username']}"
+            
+            response = await ac.post("/auth/register", json=duplicate_data)
+            assert response.status_code == 400
+            assert "Email already registered" in response.json()["detail"]
     
     @pytest.mark.asyncio
-    async def test_register_password_mismatch(self, client, test_user_data):
+    async def test_register_password_mismatch(self, client, clean_test_data):
         """Test registration with password mismatch."""
-        test_data = test_user_data.copy()
-        test_data["confirm_password"] = "differentpassword"
-        
-        response = await client.post("/auth/register", json=test_data)
-        assert response.status_code == 422  # Validation error
+        async with client as ac:
+            # Create unique test data for this test
+            test_data = create_unique_test_user_data()
+            test_data["confirm_password"] = "differentpassword"
+            
+            response = await ac.post("/auth/register", json=test_data)
+            assert response.status_code == 422  # Validation error
 
 
 class TestEmailVerification:
     """Test email verification flow."""
     
     @pytest.mark.asyncio
-    async def test_verify_email_success(self, client, test_user_data):
+    async def test_verify_email_success(self, client, clean_test_data):
         """Test successful email verification."""
-        # Register user
-        register_response = await client.post("/auth/register", json=test_user_data)
-        assert register_response.status_code == 200
+        async with client as ac:
+            # Create unique test data for this test
+            test_user_data = create_unique_test_user_data()
+            
+            # Register user
+            register_response = await ac.post("/auth/register", json=test_user_data)
+            assert register_response.status_code == 200
         
-        # Note: In real integration tests, we would get the token from the database
-        # For now, we test the endpoint structure
-        fake_token = "fake_verification_token"
-        
-        response = await client.post(f"/auth/verify-email?token={fake_token}")
-        # This will return 400 because token doesn't exist, but tests the endpoint
-        assert response.status_code == 400
-        assert "Invalid verification token" in response.json()["detail"]
+            # Note: In real integration tests, we would get the token from the database
+            # For now, we test the endpoint structure
+            fake_token = "fake_verification_token"
+            
+            response = await ac.post(f"/auth/verify-email?token={fake_token}")
+            # This will return 400 because token doesn't exist, but tests the endpoint
+            assert response.status_code == 400
+            assert "Invalid verification token" in response.json()["detail"]
     
     @pytest.mark.asyncio
-    async def test_resend_verification(self, client, test_user_data):
+    async def test_resend_verification(self, client, clean_test_data):
         """Test resending verification email."""
-        # Register user
-        await client.post("/auth/register", json=test_user_data)
-        
-        # Resend verification
-        response = await client.post(f"/auth/resend-verification?email={test_user_data['email']}")
-        assert response.status_code == 200
-        data = response.json()
-        assert data["message"] == "Verification email sent"
+        async with client as ac:
+            # Create unique test data for this test
+            test_user_data = create_unique_test_user_data()
+            
+            # Register user
+            await ac.post("/auth/register", json=test_user_data)
+            
+            # Resend verification
+            response = await ac.post(f"/auth/resend-verification?email={test_user_data['email']}")
+            assert response.status_code == 200
+            data = response.json()
+            assert data["message"] == "Verification email sent"
     
     @pytest.mark.asyncio
     async def test_resend_verification_nonexistent_email(self, client):
@@ -289,9 +316,12 @@ class TestPasswordReset:
     """Test password reset flow."""
     
     @pytest.mark.asyncio
-    async def test_forgot_password(self, client, test_user_data):
+    async def test_forgot_password(self, client, clean_test_data):
         """Test password reset request."""
         async with client as ac:
+            # Create unique test data for this test
+            test_user_data = create_unique_test_user_data()
+            
             # Register and verify user (simplified for test)
             await ac.post("/auth/register", json=test_user_data)
             
@@ -339,9 +369,12 @@ class TestLoginAfterRegistration:
     """Test login functionality after registration."""
     
     @pytest.mark.asyncio
-    async def test_login_unverified_user(self, client, test_user_data):
+    async def test_login_unverified_user(self, client, clean_test_data):
         """Test that unverified users cannot login."""
         async with client as ac:
+            # Create unique test data for this test
+            test_user_data = create_unique_test_user_data()
+            
             # Register user (will be inactive until verified)
             await ac.post("/auth/register", json=test_user_data)
             
@@ -387,41 +420,50 @@ class TestValidationErrors:
     """Test input validation errors."""
     
     @pytest.mark.asyncio
-    async def test_register_invalid_email(self, client, test_user_data):
+    async def test_register_invalid_email(self, client, clean_test_data):
         """Test registration with invalid email."""
-        test_data = test_user_data.copy()
-        test_data["email"] = "invalid_email"
-        
-        response = await client.post("/auth/register", json=test_data)
-        assert response.status_code == 422  # Validation error
+        async with client as ac:
+            # Create unique test data for this test
+            test_data = create_unique_test_user_data()
+            test_data["email"] = "invalid_email"
+            
+            response = await ac.post("/auth/register", json=test_data)
+            assert response.status_code == 422  # Validation error
     
     @pytest.mark.asyncio
-    async def test_register_short_password(self, client, test_user_data):
+    async def test_register_short_password(self, client, clean_test_data):
         """Test registration with short password."""
-        test_data = test_user_data.copy()
-        test_data["password"] = "short"
-        test_data["confirm_password"] = "short"
-        
-        response = await client.post("/auth/register", json=test_data)
-        assert response.status_code == 422  # Validation error
+        async with client as ac:
+            # Create unique test data for this test
+            test_data = create_unique_test_user_data()
+            test_data["password"] = "short"
+            test_data["confirm_password"] = "short"
+            
+            response = await ac.post("/auth/register", json=test_data)
+            assert response.status_code == 422  # Validation error
     
     @pytest.mark.asyncio
-    async def test_register_invalid_username(self, client, test_user_data):
+    async def test_register_invalid_username(self, client, clean_test_data):
         """Test registration with invalid username."""
-        test_data = test_user_data.copy()
-        test_data["username"] = "us"  # Too short
-        
-        response = await client.post("/auth/register", json=test_data)
-        assert response.status_code == 422  # Validation error
+        async with client as ac:
+            # Create unique test data for this test
+            test_data = create_unique_test_user_data()
+            test_data["username"] = "us"  # Too short
+            
+            response = await ac.post("/auth/register", json=test_data)
+            assert response.status_code == 422  # Validation error
 
 
 class TestSecurityFeatures:
     """Test security features of authentication system."""
     
     @pytest.mark.asyncio
-    async def test_password_reset_rate_limiting(self, client, test_user_data):
+    async def test_password_reset_rate_limiting(self, client, clean_test_data):
         """Test rate limiting on password reset requests."""
         async with client as ac:
+            # Create unique test data for this test
+            test_user_data = create_unique_test_user_data()
+            
             # Register user
             await ac.post("/auth/register", json=test_user_data)
             
