@@ -17,12 +17,13 @@ from ..core.permissions import ResourceType, Permission
 from ..models.api_key import APIKey, APIKeyStatus, APIKeyScope
 from ..models.user import User
 from ..dependencies.database import get_database
+from ..dependencies.auth import get_current_user
 from ..core.analytics import APIUsageAnalytics, AnalyticsTimeframe, AnalyticsFilter
 from ..core.key_lifecycle import APIKeyLifecycleManager
 from ..services.usage_tracking import get_usage_tracker
 
 
-router = APIRouter(prefix="/ui", tags=["UI Dashboard"])
+router = APIRouter(prefix="/ui")
 
 
 # Response Models for UI
@@ -89,26 +90,79 @@ class UINotification(BaseModel):
 
 
 # Dashboard endpoints
-@router.get("/dashboard", response_model=DashboardStats)
-async def get_dashboard_stats(
+# Legacy API key-authenticated dashboard endpoint (deprecated)
+@router.get("/dashboard", response_model=DashboardStats, deprecated=True, tags=["UI - Legacy"])
+async def get_dashboard_stats_legacy(
     api_key: APIKey = Depends(require_resource_permission(ResourceType.ANALYTICS, Permission.READ)),
     db: AsyncSession = Depends(get_database)
 ):
     """
-    Get dashboard statistics for the current user.
-    
-    Returns high-level metrics and KPIs for the dashboard overview.
+    Get dashboard statistics (API key auth) - DEPRECATED. Use /frontend/dashboard instead.
     """
+    # Implementation simplified - redirect to frontend version behavior
     checker = PermissionChecker(api_key)
     
     # Get user's API keys
-    if checker.can(ResourceType.ADMIN, Permission.READ):
-        # Admin sees all keys
-        keys_query = select(APIKey)
-    else:
-        # Regular user sees only their keys
-        keys_query = select(APIKey).where(APIKey.user_id == api_key.user_id)
+    keys_query = select(APIKey).where(APIKey.user_id == api_key.user_id)
+    keys_result = await db.execute(keys_query)
+    user_keys = keys_result.scalars().all()
     
+    # Calculate basic stats
+    total_keys = len(user_keys)
+    active_keys = len([k for k in user_keys if k.status == APIKeyStatus.active])
+    
+    # Check for expiring keys
+    now = datetime.utcnow()
+    expiring_soon = len([
+        k for k in user_keys 
+        if k.expires_at and (k.expires_at - now).days <= 30
+    ])
+    
+    # Get usage analytics
+    analytics = APIUsageAnalytics(db)
+    filters = AnalyticsFilter(api_key_ids=[str(k.id) for k in user_keys])
+    summary = await analytics.get_usage_summary(AnalyticsTimeframe.DAY, filters)
+    
+    # Get endpoint analytics
+    endpoint_data = await analytics.get_endpoint_analytics(
+        AnalyticsTimeframe.DAY, filters, limit=1
+    )
+    
+    top_endpoint = endpoint_data[0]["endpoint"] if endpoint_data else None
+    
+    # Get last activity
+    last_activity = None
+    if user_keys:
+        last_used_times = [k.last_used_at for k in user_keys if k.last_used_at]
+        if last_used_times:
+            last_activity = max(last_used_times).isoformat()
+    
+    return DashboardStats(
+        total_api_keys=total_keys,
+        active_keys=active_keys,
+        expiring_soon=expiring_soon,
+        total_requests_today=summary["summary"]["total_requests"],
+        error_rate_today=summary["summary"]["error_rate_percent"],
+        avg_response_time=summary["summary"]["average_response_time_ms"],
+        top_endpoint=top_endpoint,
+        last_activity=last_activity
+    )
+
+
+@router.get("/frontend/dashboard", response_model=DashboardStats, tags=["UI - Frontend"])
+async def get_frontend_dashboard_stats(
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_database)
+):
+    """
+    Get dashboard statistics for the frontend (JWT authenticated).
+    """
+    from sqlalchemy import select, and_
+    
+    # Get user's API keys
+    keys_query = select(APIKey).where(
+        and_(APIKey.user_id == user.id, APIKey.status == "active")
+    )
     keys_result = await db.execute(keys_query)
     user_keys = keys_result.scalars().all()
     
@@ -126,12 +180,8 @@ async def get_dashboard_stats(
     # Get usage analytics
     analytics = APIUsageAnalytics(db)
     
-    if checker.can(ResourceType.ADMIN, Permission.READ):
-        # System-wide analytics for admin
-        filters = None
-    else:
-        # User-specific analytics
-        filters = AnalyticsFilter(api_key_ids=[str(k.id) for k in user_keys])
+    # User-specific analytics
+    filters = AnalyticsFilter(api_key_ids=[str(k.id) for k in user_keys])
     
     summary = await analytics.get_usage_summary(AnalyticsTimeframe.DAY, filters)
     
@@ -161,7 +211,7 @@ async def get_dashboard_stats(
     )
 
 
-@router.get("/api-keys", response_model=List[APIKeyCard])
+@router.get("/api-keys", response_model=List[APIKeyCard], tags=["UI - Frontend"])
 async def get_api_keys_for_ui(
     status_filter: Optional[str] = Query(None),
     sort_by: str = Query("created_at", regex="^(created_at|last_used_at|name|expires_at)$"),
@@ -266,7 +316,7 @@ async def get_api_keys_for_ui(
     return cards
 
 
-@router.get("/quick-actions", response_model=QuickActions)
+@router.get("/quick-actions", response_model=QuickActions, tags=["UI - Legacy"], deprecated=True)
 async def get_quick_actions(
     api_key: APIKey = Depends(require_api_key)
 ):

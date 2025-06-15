@@ -29,7 +29,7 @@ from ..models.user import (
 )
 
 
-router = APIRouter(prefix="/users", tags=["User Management"])
+router = APIRouter(prefix="/users")
 
 
 @router.get("/me", response_model=UserResponse)

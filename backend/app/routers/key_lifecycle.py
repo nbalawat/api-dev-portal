@@ -21,7 +21,7 @@ from ..models.api_key import APIKey
 from ..dependencies.database import get_database
 
 
-router = APIRouter(prefix="/lifecycle", tags=["API Key Lifecycle"])
+router = APIRouter(prefix="/lifecycle")
 
 
 # Request/Response Models

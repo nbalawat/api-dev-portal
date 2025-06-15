@@ -20,7 +20,7 @@ from ..middleware import require_api_key
 from ..models.api_key import APIKey, APIKeyScope
 
 
-router = APIRouter(prefix="/permissions", tags=["Permissions & Scopes"])
+router = APIRouter(prefix="/permissions")
 
 
 # Response models

@@ -19,7 +19,7 @@ from ..services.activity_logging import (
 )
 
 
-router = APIRouter(prefix="/activity-logs", tags=["Activity Logs"])
+router = APIRouter(prefix="/activity-logs")
 
 
 # Response Models

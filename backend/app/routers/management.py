@@ -20,7 +20,7 @@ from ..dependencies.database import get_database
 from ..core.key_lifecycle import APIKeyLifecycleManager, RotationTrigger
 
 
-router = APIRouter(prefix="/management", tags=["Advanced Management"])
+router = APIRouter(prefix="/management")
 
 
 # Request/Response Models

@@ -17,7 +17,7 @@ from ..core.permissions import ResourceType, Permission
 from ..models.api_key import APIKey, RateLimitType
 
 
-router = APIRouter(prefix="/rate-limits", tags=["Rate Limiting"])
+router = APIRouter(prefix="/rate-limits")
 
 
 # Request/Response Models

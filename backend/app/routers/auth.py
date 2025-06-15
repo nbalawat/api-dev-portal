@@ -36,7 +36,7 @@ from ..models.token import (
 )
 
 
-router = APIRouter(prefix="/auth", tags=["Authentication"])
+router = APIRouter(prefix="/auth")
 
 
 @router.post("/login", response_model=TokenResponse)

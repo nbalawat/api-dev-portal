@@ -18,10 +18,12 @@ from ..middleware.permissions import require_resource_permission, get_permission
 from ..middleware import require_api_key
 from ..core.permissions import ResourceType, Permission
 from ..models.api_key import APIKey
+from ..models.user import User
 from ..dependencies.database import get_database
+from ..dependencies.auth import get_current_user
 
 
-router = APIRouter(prefix="/analytics", tags=["Analytics & Reporting"])
+router = APIRouter(prefix="/analytics")
 
 
 # Request/Response Models
@@ -76,8 +78,8 @@ class InsightsResponse(BaseModel):
     total_insights: int
 
 
-# Public endpoints (require analytics permissions)
-@router.get("/summary", response_model=UsageSummaryResponse)
+# API Key Authentication Endpoints (Legacy)
+@router.get("/summary", response_model=UsageSummaryResponse, tags=["Analytics - API Key Auth"], deprecated=True)
 async def get_usage_summary(
     timeframe: AnalyticsTimeframe = Query(AnalyticsTimeframe.DAY),
     start_date: Optional[datetime] = Query(None),
@@ -105,7 +107,7 @@ async def get_usage_summary(
     return UsageSummaryResponse(**summary)
 
 
-@router.post("/time-series")
+@router.post("/time-series", tags=["Analytics - API Key Auth"], deprecated=True)
 async def get_time_series_data(
     request: TimeSeriesRequest,
     api_key: APIKey = Depends(require_resource_permission(ResourceType.ANALYTICS, Permission.READ)),
@@ -147,7 +149,7 @@ async def get_time_series_data(
     }
 
 
-@router.get("/my-key")
+@router.get("/my-key", tags=["Analytics - API Key Auth"], deprecated=True)
 async def get_my_api_key_analytics(
     timeframe: AnalyticsTimeframe = Query(AnalyticsTimeframe.WEEK),
     start_date: Optional[datetime] = Query(None),
@@ -176,7 +178,7 @@ async def get_my_api_key_analytics(
     return api_key_analytics
 
 
-@router.get("/endpoints", response_model=List[EndpointAnalyticsResponse])
+@router.get("/endpoints", response_model=List[EndpointAnalyticsResponse], tags=["Analytics - API Key Auth"], deprecated=True)
 async def get_endpoint_analytics(
     timeframe: AnalyticsTimeframe = Query(AnalyticsTimeframe.DAY),
     limit: int = Query(20, ge=1, le=100),
@@ -207,7 +209,7 @@ async def get_endpoint_analytics(
     return [EndpointAnalyticsResponse(**ep) for ep in endpoint_data]
 
 
-@router.get("/insights", response_model=InsightsResponse)
+@router.get("/insights", response_model=InsightsResponse, tags=["Analytics - API Key Auth"], deprecated=True)
 async def get_analytics_insights(
     timeframe: AnalyticsTimeframe = Query(AnalyticsTimeframe.DAY),
     start_date: Optional[datetime] = Query(None),
@@ -241,8 +243,8 @@ async def get_analytics_insights(
     )
 
 
-# Admin endpoints (require admin analytics permissions)
-@router.get("/admin/overview")
+# Admin Analytics Endpoints
+@router.get("/admin/overview", tags=["Analytics - Admin"])
 async def get_admin_analytics_overview(
     timeframe: AnalyticsTimeframe = Query(AnalyticsTimeframe.DAY),
     api_key: APIKey = Depends(require_resource_permission(ResourceType.ADMIN, Permission.READ)),
@@ -275,7 +277,7 @@ async def get_admin_analytics_overview(
     }
 
 
-@router.get("/admin/api-key/{api_key_id}")
+@router.get("/admin/api-key/{api_key_id}", tags=["Analytics - Admin"])
 async def get_admin_api_key_analytics(
     api_key_id: str,
     timeframe: AnalyticsTimeframe = Query(AnalyticsTimeframe.WEEK),
@@ -302,7 +304,7 @@ async def get_admin_api_key_analytics(
     return api_key_analytics
 
 
-@router.get("/admin/user/{user_id}")
+@router.get("/admin/user/{user_id}", tags=["Analytics - Admin"])
 async def get_admin_user_analytics(
     user_id: str,
     timeframe: AnalyticsTimeframe = Query(AnalyticsTimeframe.WEEK),
@@ -329,7 +331,7 @@ async def get_admin_user_analytics(
     return user_analytics
 
 
-@router.post("/admin/custom-report")
+@router.post("/admin/custom-report", tags=["Analytics - Admin"])
 async def generate_custom_report(
     report_request: Dict[str, Any],
     admin_api_key: APIKey = Depends(require_resource_permission(ResourceType.ADMIN, Permission.READ)),
@@ -391,7 +393,7 @@ async def generate_custom_report(
 
 
 # Export endpoints (require export permissions)
-@router.get("/export/csv")
+@router.get("/export/csv", tags=["Analytics - Export"])
 async def export_analytics_csv(
     timeframe: AnalyticsTimeframe = Query(AnalyticsTimeframe.DAY),
     start_date: Optional[datetime] = Query(None),
@@ -422,7 +424,7 @@ async def export_analytics_csv(
     }
 
 
-@router.get("/export/json")
+@router.get("/export/json", tags=["Analytics - Export"])
 async def export_analytics_json(
     timeframe: AnalyticsTimeframe = Query(AnalyticsTimeframe.DAY),
     start_date: Optional[datetime] = Query(None),
@@ -505,4 +507,253 @@ async def get_available_metrics(
             }
             for timeframe in AnalyticsTimeframe
         ]
+    }
+
+
+# Frontend JWT Authentication Endpoints (Recommended)
+@router.get("/frontend/summary", tags=["Analytics - Frontend"])
+async def get_frontend_summary(
+    timeframe: AnalyticsTimeframe = Query(AnalyticsTimeframe.DAY),
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_database)
+):
+    """
+    Get usage summary for frontend (JWT authenticated).
+    
+    Returns analytics data for all API keys owned by the current user.
+    """
+    from sqlalchemy import select, and_
+    
+    # Get all API keys for this user
+    result = await db.execute(
+        select(APIKey).where(
+            and_(APIKey.user_id == user.id, APIKey.status == "active")
+        )
+    )
+    user_api_keys = result.scalars().all()
+    
+    if not user_api_keys:
+        return {
+            "timeframe": timeframe.value,
+            "period": {"start": "", "end": ""},
+            "summary": {"total_requests": 0, "error_rate": 0, "avg_response_time": 0},
+            "bandwidth": {"total_bytes": 0, "avg_request_size": 0}
+        }
+    
+    analytics = APIUsageAnalytics(db)
+    api_key_ids = [str(key.id) for key in user_api_keys]
+    
+    filters = AnalyticsFilter(api_key_ids=api_key_ids)
+    summary = await analytics.get_usage_summary(timeframe, filters)
+    
+    return summary
+
+
+@router.post("/frontend/time-series", tags=["Analytics - Frontend"])
+async def get_frontend_time_series(
+    request: TimeSeriesRequest,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_database)
+):
+    """
+    Get time series data for frontend (JWT authenticated).
+    """
+    from sqlalchemy import select, and_
+    
+    # Get all API keys for this user
+    result = await db.execute(
+        select(APIKey).where(
+            and_(APIKey.user_id == user.id, APIKey.status == "active")
+        )
+    )
+    user_api_keys = result.scalars().all()
+    
+    if not user_api_keys:
+        return {
+            "metric": request.metric.value,
+            "timeframe": request.timeframe.value,
+            "interval": request.interval,
+            "data": []
+        }
+    
+    analytics = APIUsageAnalytics(db)
+    api_key_ids = [str(key.id) for key in user_api_keys]
+    
+    # Use provided filters or create new ones
+    filters = request.filters
+    if filters:
+        filters = AnalyticsFilter(**filters.dict())
+        # If specific API keys are requested, filter to only user's keys that are requested
+        if filters.api_key_ids:
+            # Only allow filtering by API keys that belong to the user
+            requested_keys = set(filters.api_key_ids)
+            user_keys = set(api_key_ids)
+            filters.api_key_ids = list(requested_keys.intersection(user_keys))
+        else:
+            # No specific API keys requested, use all user's keys
+            filters.api_key_ids = api_key_ids
+    else:
+        filters = AnalyticsFilter(api_key_ids=api_key_ids)
+    
+    time_series = await analytics.get_time_series_data(
+        request.metric,
+        request.timeframe,
+        request.interval,
+        filters
+    )
+    
+    return {
+        "metric": request.metric.value,
+        "timeframe": request.timeframe.value,
+        "interval": request.interval,
+        "data": time_series
+    }
+
+
+@router.post("/frontend/endpoints", tags=["Analytics - Frontend"])
+async def get_frontend_endpoints(
+    request: dict,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_database)
+):
+    """
+    Get endpoint analytics for frontend (JWT authenticated).
+    """
+    from sqlalchemy import select, and_
+    
+    # Extract parameters from request
+    timeframe = request.get('timeframe', 'day')
+    limit = request.get('limit', 20)
+    filters_data = request.get('filters', {})
+    
+    # Get all API keys for this user
+    result = await db.execute(
+        select(APIKey).where(
+            and_(APIKey.user_id == user.id, APIKey.status == "active")
+        )
+    )
+    user_api_keys = result.scalars().all()
+    
+    if not user_api_keys:
+        return []
+    
+    analytics = APIUsageAnalytics(db)
+    api_key_ids = [str(key.id) for key in user_api_keys]
+    
+    # Create filters
+    if filters_data:
+        filters = AnalyticsFilter(**filters_data)
+        # If specific API keys are requested, filter to only user's keys that are requested
+        if filters.api_key_ids:
+            # Only allow filtering by API keys that belong to the user
+            requested_keys = set(filters.api_key_ids)
+            user_keys = set(api_key_ids)
+            filters.api_key_ids = list(requested_keys.intersection(user_keys))
+        else:
+            # No specific API keys requested, use all user's keys
+            filters.api_key_ids = api_key_ids
+    else:
+        filters = AnalyticsFilter(api_key_ids=api_key_ids)
+    
+    endpoint_data = await analytics.get_endpoint_analytics(timeframe, filters, limit)
+    
+    return [EndpointAnalyticsResponse(**ep) for ep in endpoint_data]
+
+
+@router.get("/frontend/my-key", tags=["Analytics - Frontend"])
+async def get_frontend_my_key_analytics(
+    timeframe: AnalyticsTimeframe = Query(AnalyticsTimeframe.WEEK),
+    start_date: Optional[datetime] = Query(None),
+    end_date: Optional[datetime] = Query(None),
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_database)
+):
+    """
+    Get detailed analytics for the current user's API keys (JWT authenticated).
+    """
+    from sqlalchemy import select, and_
+    
+    # Get all API keys for this user
+    result = await db.execute(
+        select(APIKey).where(
+            and_(APIKey.user_id == user.id, APIKey.status == "active")
+        )
+    )
+    user_api_keys = result.scalars().all()
+    
+    if not user_api_keys:
+        return {
+            "summary": {"total_requests": 0, "error_rate_percent": 0, "average_response_time_ms": 0},
+            "trends": [],
+            "top_endpoints": []
+        }
+    
+    analytics = APIUsageAnalytics(db)
+    api_key_ids = [str(key.id) for key in user_api_keys]
+    
+    filters = AnalyticsFilter(
+        start_date=start_date,
+        end_date=end_date,
+        api_key_ids=api_key_ids
+    )
+    
+    # Get comprehensive analytics for all user's keys
+    summary = await analytics.get_usage_summary(timeframe, filters)
+    trends = await analytics.get_time_series_data("requests", timeframe, "day", filters)
+    endpoints = await analytics.get_endpoint_analytics(timeframe, filters, 5)
+    
+    return {
+        "summary": summary["summary"],
+        "trends": trends,
+        "top_endpoints": endpoints,
+        "timeframe": timeframe.value,
+        "api_key_count": len(user_api_keys)
+    }
+
+
+@router.get("/frontend/insights", tags=["Analytics - Frontend"])
+async def get_frontend_insights(
+    timeframe: AnalyticsTimeframe = Query(AnalyticsTimeframe.DAY),
+    start_date: Optional[datetime] = Query(None),
+    end_date: Optional[datetime] = Query(None),
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_database)
+):
+    """
+    Get AI-generated insights for the current user (JWT authenticated).
+    """
+    from sqlalchemy import select, and_
+    
+    # Get all API keys for this user
+    result = await db.execute(
+        select(APIKey).where(
+            and_(APIKey.user_id == user.id, APIKey.status == "active")
+        )
+    )
+    user_api_keys = result.scalars().all()
+    
+    if not user_api_keys:
+        return {
+            "insights": ["No API keys found. Create an API key to start tracking usage."],
+            "generated_at": datetime.utcnow(),
+            "timeframe": timeframe.value,
+            "total_insights": 1
+        }
+    
+    analytics = APIUsageAnalytics(db)
+    api_key_ids = [str(key.id) for key in user_api_keys]
+    
+    filters = AnalyticsFilter(
+        start_date=start_date,
+        end_date=end_date,
+        api_key_ids=api_key_ids
+    )
+    
+    insights = await analytics.generate_insights(timeframe, filters)
+    
+    return {
+        "insights": insights,
+        "generated_at": datetime.utcnow(),
+        "timeframe": timeframe.value,
+        "total_insights": len(insights)
     }

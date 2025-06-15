@@ -19,7 +19,7 @@ from ..models.api_key import APIKey, APIKeyScope
 from ..models.user import User, UserResponse
 from ..core.api_keys import APIKeyManager
 
-router = APIRouter(prefix="/api/v1", tags=["API v1 - Protected"])
+router = APIRouter(prefix="/api/v1")
 
 
 @router.get("/profile", response_model=UserResponse)

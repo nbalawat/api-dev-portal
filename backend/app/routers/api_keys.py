@@ -33,7 +33,7 @@ from ..models.api_key import (
 )
 
 
-router = APIRouter(prefix="/api-keys", tags=["API Key Management"])
+router = APIRouter(prefix="/api-keys")
 
 
 @router.post("/", response_model=APIKeyCreateResponse)
