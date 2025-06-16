@@ -251,8 +251,8 @@ async def update_api_key(
 @router.post("/{api_key_id}/revoke")
 async def revoke_api_key(
     api_key_id: UUID,
-    revoke_data: APIKeyRevoke = APIKeyRevoke(),
     request: Request,
+    revoke_data: APIKeyRevoke = APIKeyRevoke(),
     current_user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_database)
 ) -> dict:
@@ -321,8 +321,8 @@ async def revoke_api_key(
 @router.post("/{api_key_id}/rotate", response_model=APIKeyRotateResponse)
 async def rotate_api_key(
     api_key_id: UUID,
-    rotate_data: APIKeyRotate = APIKeyRotate(),
     request: Request,
+    rotate_data: APIKeyRotate = APIKeyRotate(),
     current_user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_database)
 ) -> APIKeyRotateResponse:

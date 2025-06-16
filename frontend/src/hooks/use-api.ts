@@ -48,12 +48,32 @@ export function useUsageStats() {
   return useApi(() => apiClient.getUsageStats())
 }
 
-export function useUsageTrends(period: string = '7d') {
-  return useApi(() => apiClient.getUsageTrends(period), [period])
+export function useAnalyticsSummary(timeframe: string = 'day') {
+  return useApi(() => apiClient.getAnalyticsSummary(timeframe), [timeframe])
 }
 
-export function useEndpointStats() {
-  return useApi(() => apiClient.getEndpointStats())
+export function useUsageTrends(timeframe: string = 'week', interval: string = 'day', filters?: any) {
+  return useApi(() => apiClient.getUsageTrends(timeframe, interval, filters), [timeframe, interval, filters])
+}
+
+export function useErrorTrends(timeframe: string = 'week', interval: string = 'day', filters?: any) {
+  return useApi(() => apiClient.getErrorTrends(timeframe, interval, filters), [timeframe, interval, filters])
+}
+
+export function useResponseTimeTrends(timeframe: string = 'week', interval: string = 'day', filters?: any) {
+  return useApi(() => apiClient.getResponseTimeTrends(timeframe, interval, filters), [timeframe, interval, filters])
+}
+
+export function useEndpointStats(timeframe: string = 'day', filters?: any) {
+  return useApi(() => apiClient.getEndpointStats(timeframe, filters), [timeframe, filters])
+}
+
+export function useMyApiKeyAnalytics(timeframe: string = 'week') {
+  return useApi(() => apiClient.getMyApiKeyAnalytics(timeframe), [timeframe])
+}
+
+export function useAnalyticsInsights(timeframe: string = 'day') {
+  return useApi(() => apiClient.getAnalyticsInsights(timeframe), [timeframe])
 }
 
 export function useCurrentUser() {

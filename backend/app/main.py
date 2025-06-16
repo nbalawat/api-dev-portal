@@ -12,7 +12,7 @@ import os
 
 from .core.config import settings
 from .core.database import init_database, init_db, close_db
-from .routers import auth, users, api_keys, api_v1, permissions, rate_limits, analytics, key_lifecycle, ui, management, activity_logs
+from .routers import auth, users, api_keys, api_v1, permissions, rate_limits, analytics, key_lifecycle, ui, management, activity_logs, background_tasks, enhanced_rate_limits
 from .middleware import APIKeyAuthMiddleware
 from .middleware.rate_limiting import RateLimitMiddleware, get_rate_limit_manager
 
@@ -103,6 +103,8 @@ app.include_router(key_lifecycle.router, prefix="/api", tags=["Key Lifecycle"])
 app.include_router(ui.router, prefix="/api", tags=["UI"])
 app.include_router(management.router, prefix="/api", tags=["Management"])
 app.include_router(activity_logs.router, prefix="/api", tags=["Activity Logs"])
+app.include_router(background_tasks.router, prefix="/api", tags=["Background Tasks"])
+app.include_router(enhanced_rate_limits.router, prefix="/api", tags=["Enhanced Rate Limits"])
 
 # Basic middleware for request timing
 @app.middleware("http")
@@ -238,6 +240,11 @@ async def startup_event():
         from .services.activity_logging import start_activity_logging
         await start_activity_logging()
         print("✅ Activity logging service started")
+        
+        # Start background scheduler for automated tasks
+        from .services.background_scheduler import start_background_scheduler
+        start_background_scheduler()
+        print("✅ Background scheduler started")
     except Exception as e:
         print(f"❌ Database initialization failed: {e}")
 
@@ -260,6 +267,11 @@ async def shutdown_event():
     from .services.activity_logging import stop_activity_logging
     await stop_activity_logging()
     print("✅ Activity logging service stopped")
+    
+    # Stop background scheduler
+    from .services.background_scheduler import stop_background_scheduler
+    await stop_background_scheduler()
+    print("✅ Background scheduler stopped")
     
     await close_db()
 

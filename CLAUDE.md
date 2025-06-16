@@ -1,2 +1,6 @@
 - don't forget that the app is running inside docker.  so don't randomly start testing the app outside docker
 - create a new branch for every new feature
+- complete one feature at a time and ensure that the feature passes the test.
+- please don't use mocks for testing.  make sure the you write tests that explicity pass or fail
+- after implementing a feature, write explicity tests to pass and fail.  only after the tests succeed should you commit the code
+- remember that the app doesn't run locally it runs in docker.

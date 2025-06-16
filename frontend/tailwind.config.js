@@ -26,17 +26,17 @@ module.exports = {
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
-          50: "hsl(239, 100%, 98%)",
-          100: "hsl(238, 100%, 96%)",
-          200: "hsl(238, 100%, 92%)",
-          300: "hsl(239, 100%, 85%)",
-          400: "hsl(240, 100%, 75%)",
-          500: "hsl(241, 100%, 65%)",
-          600: "hsl(242, 83%, 58%)",
-          700: "hsl(243, 75%, 51%)",
-          800: "hsl(244, 58%, 44%)",
-          900: "hsl(244, 55%, 37%)",
-          950: "hsl(244, 47%, 20%)",
+          50: "#eff6ff",
+          100: "#dbeafe",
+          200: "#bfdbfe",
+          300: "#93c5fd",
+          400: "#60a5fa",
+          500: "#3b82f6",
+          600: "#2563eb",
+          700: "#1d4ed8",
+          800: "#1e40af",
+          900: "#1e3a8a",
+          950: "#172554",
         },
         secondary: {
           DEFAULT: "hsl(var(--secondary))",
@@ -61,6 +61,18 @@ module.exports = {
         card: {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
+        },
+        success: {
+          DEFAULT: "hsl(var(--success))",
+          foreground: "hsl(var(--success-foreground))",
+        },
+        warning: {
+          DEFAULT: "hsl(var(--warning))",
+          foreground: "hsl(var(--warning-foreground))",
+        },
+        info: {
+          DEFAULT: "hsl(var(--info))",
+          foreground: "hsl(var(--info-foreground))",
         },
         // Enterprise color palette
         slate: {
@@ -222,9 +234,5 @@ module.exports = {
       },
     },
   },
-  plugins: [
-    require("tailwindcss-animate"),
-    require("@tailwindcss/forms"),
-    require("@tailwindcss/typography"),
-  ],
+  plugins: [],
 }

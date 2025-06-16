@@ -202,18 +202,106 @@ class ApiClient {
 
   // Analytics
   async getUsageStats() {
-    return this.request<any>('/api/ui/dashboard')
+    return this.request<any>('/api/ui/frontend/dashboard')
   }
 
-  async getUsageTrends(period: string = '7d') {
-    return this.request<any>(`/api/analytics/time-series`, {
+  async getAnalyticsSummary(timeframe: string = 'day') {
+    return this.request<any>(`/api/analytics/frontend/summary?timeframe=${timeframe}`)
+  }
+
+  async getUsageTrends(timeframe: string = 'week', interval: string = 'day', filters?: any) {
+    const payload: any = { 
+      metric: 'requests',
+      timeframe,
+      interval
+    }
+    
+    // Add filters if provided
+    if (filters && (filters.endpoints?.length || filters.apiKeys?.length || filters.methods?.length || filters.statusCodes?.length)) {
+      payload.filters = {}
+      if (filters.endpoints?.length) payload.filters.endpoints = filters.endpoints
+      if (filters.apiKeys?.length) payload.filters.api_key_ids = filters.apiKeys
+      if (filters.methods?.length) payload.filters.methods = filters.methods
+      if (filters.statusCodes?.length) payload.filters.status_codes = filters.statusCodes
+    }
+    
+    return this.request<any>('/api/analytics/frontend/time-series', {
       method: 'POST',
-      body: JSON.stringify({ period })
+      body: JSON.stringify(payload)
     })
   }
 
-  async getEndpointStats() {
-    return this.request<any>('/api/analytics/endpoints')
+  async getErrorTrends(timeframe: string = 'week', interval: string = 'day', filters?: any) {
+    const payload: any = { 
+      metric: 'error_rate',
+      timeframe,
+      interval
+    }
+    
+    // Add filters if provided
+    if (filters && (filters.endpoints?.length || filters.apiKeys?.length || filters.methods?.length || filters.statusCodes?.length)) {
+      payload.filters = {}
+      if (filters.endpoints?.length) payload.filters.endpoints = filters.endpoints
+      if (filters.apiKeys?.length) payload.filters.api_key_ids = filters.apiKeys
+      if (filters.methods?.length) payload.filters.methods = filters.methods
+      if (filters.statusCodes?.length) payload.filters.status_codes = filters.statusCodes
+    }
+    
+    return this.request<any>('/api/analytics/frontend/time-series', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    })
+  }
+
+  async getResponseTimeTrends(timeframe: string = 'week', interval: string = 'day', filters?: any) {
+    const payload: any = { 
+      metric: 'response_time',
+      timeframe,
+      interval
+    }
+    
+    // Add filters if provided
+    if (filters && (filters.endpoints?.length || filters.apiKeys?.length || filters.methods?.length || filters.statusCodes?.length)) {
+      payload.filters = {}
+      if (filters.endpoints?.length) payload.filters.endpoints = filters.endpoints
+      if (filters.apiKeys?.length) payload.filters.api_key_ids = filters.apiKeys
+      if (filters.methods?.length) payload.filters.methods = filters.methods
+      if (filters.statusCodes?.length) payload.filters.status_codes = filters.statusCodes
+    }
+    
+    return this.request<any>('/api/analytics/frontend/time-series', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    })
+  }
+
+  async getEndpointStats(timeframe: string = 'day', filters?: any) {
+    const payload: any = {
+      timeframe,
+      limit: 20
+    }
+    
+    // Add filters if provided
+    if (filters && (filters.endpoints?.length || filters.apiKeys?.length || filters.methods?.length || filters.statusCodes?.length)) {
+      payload.filters = {}
+      if (filters.endpoints?.length) payload.filters.endpoints = filters.endpoints
+      if (filters.apiKeys?.length) payload.filters.api_key_ids = filters.apiKeys
+      if (filters.methods?.length) payload.filters.methods = filters.methods
+      if (filters.statusCodes?.length) payload.filters.status_codes = filters.statusCodes
+    }
+    
+    return this.request<any>('/api/analytics/frontend/endpoints', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    })
+  }
+
+  async getMyApiKeyAnalytics(timeframe: string = 'week') {
+    return this.request<any>(`/api/analytics/frontend/my-key?timeframe=${timeframe}`)
+  }
+
+  async getAnalyticsInsights(timeframe: string = 'day') {
+    return this.request<any>(`/api/analytics/frontend/insights?timeframe=${timeframe}`)
   }
 
   // User Management

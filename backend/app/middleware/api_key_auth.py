@@ -144,33 +144,23 @@ class APIKeyAuthMiddleware(BaseHTTPMiddleware):
                 # Log the API usage if successful
                 if hasattr(request.state, 'log_api_usage') and request.state.log_api_usage:
                     try:
-                        # Use both the old logging method and new usage tracking
+                        # Calculate response time
+                        response_time_ms = self._get_response_time(request)
+                        
+                        # Use the APIKeyManager logging method with response time
                         await APIKeyManager.log_api_usage(
                             db=db,
                             api_key_id=validated_key.id,
                             method=request.method,
                             endpoint=request.url.path,
                             status_code=response.status_code,
+                            response_time_ms=response_time_ms,
                             ip_address=self._get_client_ip(request),
                             user_agent=request.headers.get("user-agent"),
                             request_size_bytes=self._get_request_size(request),
                             response_size_bytes=self._get_response_size(response)
                         )
                         await db.commit()
-                        
-                        # Also track with the new usage tracking service
-                        from ..services.usage_tracking import track_api_request
-                        await track_api_request(
-                            api_key_id=str(validated_key.id),
-                            method=request.method,
-                            endpoint=request.url.path,
-                            status_code=response.status_code,
-                            response_time_ms=self._get_response_time(request),
-                            ip_address=self._get_client_ip(request),
-                            user_agent=request.headers.get("user-agent"),
-                            request_size_bytes=self._get_request_size(request),
-                            response_size_bytes=self._get_response_size(response)
-                        )
                     except Exception as e:
                         # Don't fail the request if logging fails
                         print(f"Failed to log API usage: {e}")
