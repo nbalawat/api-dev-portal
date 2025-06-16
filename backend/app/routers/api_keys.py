@@ -13,6 +13,7 @@ from ..core.api_keys import APIKeyManager
 from ..dependencies.database import get_database
 from ..dependencies.auth import get_current_active_user, get_admin_user, get_developer_user
 from ..services.activity_logging import log_api_key_created, log_admin_action
+from ..services.email import email_service
 from ..models.user import User
 from ..models.api_key import (
     APIKey,
@@ -39,6 +40,7 @@ router = APIRouter(prefix="/api-keys")
 @router.post("/", response_model=APIKeyCreateResponse)
 async def create_api_key(
     api_key_data: APIKeyCreate,
+    request: Request,
     current_user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_database)
 ) -> APIKeyCreateResponse:
@@ -81,6 +83,25 @@ async def create_api_key(
         )
     except Exception as e:
         print(f"Failed to log API key creation: {e}")
+    
+    # Send email notification
+    try:
+        client_ip = request.client.host if request.client else None
+        environment = "production"  # Default to production for security
+        if api_key_data.extra_data and "environment" in api_key_data.extra_data:
+            environment = api_key_data.extra_data["environment"]
+        
+        email_service.send_api_key_created_notification(
+            email=current_user.email,
+            username=current_user.username,
+            key_name=api_key.name,
+            key_id=api_key.key_id,
+            environment=environment,
+            created_from_ip=client_ip
+        )
+    except Exception as e:
+        print(f"Failed to send API key creation notification: {e}")
+        # Don't fail the request if email notification fails
     
     return APIKeyCreateResponse(
         api_key=APIKeyResponse.from_orm(api_key),
@@ -231,6 +252,7 @@ async def update_api_key(
 async def revoke_api_key(
     api_key_id: UUID,
     revoke_data: APIKeyRevoke = APIKeyRevoke(),
+    request: Request,
     current_user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_database)
 ) -> dict:
@@ -239,6 +261,27 @@ async def revoke_api_key(
     
     Once revoked, the API key cannot be used and cannot be reactivated.
     """
+    # Get API key details before revoking for notification
+    result = await db.execute(
+        select(APIKey).where(
+            and_(
+                APIKey.id == api_key_id,
+                APIKey.user_id == current_user.id
+            )
+        )
+    )
+    api_key = result.scalar_one_or_none()
+    
+    if not api_key:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="API key not found"
+        )
+    
+    # Store details for notification
+    key_name = api_key.name
+    key_id = api_key.key_id
+    
     success = await APIKeyManager.revoke_api_key(
         db=db,
         api_key_id=api_key_id,
@@ -247,11 +290,26 @@ async def revoke_api_key(
     
     if not success:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="API key not found"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to revoke API key"
         )
     
     await db.commit()
+    
+    # Send email notification
+    try:
+        client_ip = request.client.host if request.client else None
+        email_service.send_api_key_revoked_notification(
+            email=current_user.email,
+            username=current_user.username,
+            key_name=key_name,
+            key_id=key_id,
+            reason=revoke_data.reason,
+            revoked_from_ip=client_ip
+        )
+    except Exception as e:
+        print(f"Failed to send API key revocation notification: {e}")
+        # Don't fail the request if email notification fails
     
     return {
         "message": "API key revoked successfully",
@@ -264,6 +322,7 @@ async def revoke_api_key(
 async def rotate_api_key(
     api_key_id: UUID,
     rotate_data: APIKeyRotate = APIKeyRotate(),
+    request: Request,
     current_user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_database)
 ) -> APIKeyRotateResponse:
@@ -273,6 +332,27 @@ async def rotate_api_key(
     Creates a new API key with the same settings and revokes the old one.
     Note: Consider using the new /lifecycle/rotate/{api_key_id} endpoint for advanced features.
     """
+    # Get old API key details for notification
+    result_old = await db.execute(
+        select(APIKey).where(
+            and_(
+                APIKey.id == api_key_id,
+                APIKey.user_id == current_user.id
+            )
+        )
+    )
+    old_api_key = result_old.scalar_one_or_none()
+    
+    if not old_api_key:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="API key not found"
+        )
+    
+    # Store old key details for notification
+    old_key_name = old_api_key.name
+    old_key_id = old_api_key.key_id
+    
     result = await APIKeyManager.rotate_api_key(
         db=db,
         api_key_id=api_key_id,
@@ -282,14 +362,30 @@ async def rotate_api_key(
     
     if not result:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="API key not found"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to rotate API key"
         )
     
     new_api_key, secret_key = result
     
+    # Send email notification
+    try:
+        client_ip = request.client.host if request.client else None
+        email_service.send_api_key_rotated_notification(
+            email=current_user.email,
+            username=current_user.username,
+            old_key_name=old_key_name,
+            old_key_id=old_key_id,
+            new_key_name=new_api_key.name,
+            new_key_id=new_api_key.key_id,
+            rotated_from_ip=client_ip
+        )
+    except Exception as e:
+        print(f"Failed to send API key rotation notification: {e}")
+        # Don't fail the request if email notification fails
+    
     return APIKeyRotateResponse(
-        old_key_id=str(api_key_id),
+        old_key_id=old_key_id,
         new_api_key=APIKeyResponse.from_orm(new_api_key),
         new_secret_key=secret_key
     )
