@@ -127,14 +127,31 @@ docker-compose down
 
 ## Clean Up
 
-To avoid charges, delete resources when done:
+To avoid charges, use our cleanup scripts:
+
+### Automatic Cleanup (Recommended)
 ```bash
-# Delete the VM
+# Interactive cleanup - choose what to delete
+./deploy/cleanup.sh
+
+# OR force delete everything (no prompts)
+./deploy/cleanup-all.sh
+```
+
+### Manual Cleanup
+```bash
+# Delete specific VM
 gcloud compute instances delete api-portal-demo --zone=us-central1-a
 
 # Delete firewall rule
 gcloud compute firewall-rules delete allow-api-portal
 ```
+
+The cleanup scripts will:
+- Find all instances tagged with 'api-portal'
+- Delete associated firewall rules
+- Show you what was cleaned up
+- Estimate your savings (~$24-48/month per instance)
 
 ## Troubleshooting
 

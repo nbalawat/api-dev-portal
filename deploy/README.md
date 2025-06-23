@@ -16,7 +16,17 @@ This directory contains scripts for quickly deploying the API Developer Portal t
 - **Time**: ~3 minutes after VM is created
 - **Usage**: Used automatically by the one-click script or manually on a VM
 
-### 3. `gcp-quick-start.md`
+### 3. `cleanup.sh`
+- **What it does**: Interactive cleanup of all deployed resources
+- **Run from**: Your local machine
+- **Usage**: `./deploy/cleanup.sh`
+
+### 4. `cleanup-all.sh`
+- **What it does**: Force deletes all API Portal resources (no prompts)
+- **Run from**: Your local machine
+- **Usage**: `./deploy/cleanup-all.sh`
+
+### 5. `gcp-quick-start.md`
 - **What it is**: Complete documentation with multiple deployment options
 - **Includes**: Cloud Shell deployment, manual steps, troubleshooting
 
@@ -48,10 +58,30 @@ After deployment, you'll have:
 
 ## Clean Up
 
-To avoid charges when you're done testing:
+We provide cleanup scripts to easily remove all deployed resources:
 
+### Option 1: Interactive Cleanup (Recommended)
 ```bash
-# Delete the VM (replace with your instance name)
+./deploy/cleanup.sh
+```
+This will:
+- Find all API Portal instances
+- Let you choose what to delete
+- Remove firewall rules
+- Show you what's left
+
+### Option 2: Force Cleanup (Delete Everything)
+```bash
+./deploy/cleanup-all.sh
+```
+This will:
+- Delete ALL instances with `api-portal` tag
+- Remove all firewall rules
+- No prompts (use with caution!)
+
+### Option 3: Manual Cleanup
+```bash
+# Delete specific VM
 gcloud compute instances delete api-portal-demo-TIMESTAMP --zone=us-central1-a
 
 # Delete firewall rule

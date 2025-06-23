@@ -161,6 +161,9 @@ To check Docker services:
 
 To delete this instance when done:
   gcloud compute instances delete $INSTANCE_NAME --zone=$ZONE
+
+Or use our cleanup script:
+  ./deploy/cleanup.sh
 ${NC}"
 
 # Ask if user wants to monitor the deployment
