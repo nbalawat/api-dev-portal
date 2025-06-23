@@ -27,6 +27,9 @@ class APIKeyScope(str, Enum):
     analytics = "analytics"          # Access to usage analytics
     user_management = "user_management"  # User CRUD operations
     api_management = "api_management"    # API key CRUD operations
+    payment_read = "payment:read"    # Read payment data
+    payment_write = "payment:write"  # Process payments and refunds
+    payment_admin = "payment:admin"  # Full payment administration
 
 
 class RateLimitType(str, Enum):

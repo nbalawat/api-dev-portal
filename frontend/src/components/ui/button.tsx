@@ -8,18 +8,18 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "btn-enterprise",
+        default: "bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm",
         destructive:
-          "bg-error-600 text-error-50 hover:bg-error-700 hover:shadow-lg hover:shadow-error-600/25",
+          "bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-sm",
         outline:
-          "border border-border bg-background hover:bg-accent hover:text-accent-foreground",
-        secondary: "btn-secondary",
-        ghost: "hover:bg-accent hover:text-accent-foreground",
+          "border border-gray-200 dark:border-gray-700 bg-transparent text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800",
+        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80 shadow-sm",
+        ghost: "text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800",
         link: "text-primary underline-offset-4 hover:underline",
-        success: "bg-success-600 text-success-50 hover:bg-success-700 hover:shadow-lg hover:shadow-success-600/25",
-        warning: "bg-warning-600 text-warning-50 hover:bg-warning-700 hover:shadow-lg hover:shadow-warning-600/25",
-        glass: "glass-card bg-white/10 hover:bg-white/20 text-slate-900 border-0",
-        gradient: "bg-gradient-to-r from-primary-600 to-primary-700 text-white hover:from-primary-700 hover:to-primary-800 hover:shadow-lg hover:shadow-primary-600/25",
+        success: "bg-green-600 text-white hover:bg-green-700 shadow-sm",
+        warning: "bg-amber-600 text-white hover:bg-amber-700 shadow-sm",
+        glass: "glass-card hover:shadow-lg active:scale-[0.98]",
+        gradient: "bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 shadow-sm",
       },
       size: {
         default: "h-10 px-4 py-2",

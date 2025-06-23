@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import React from 'react'
+import Link from 'next/link'
 import { AuthWrapper } from '@/components/auth-wrapper'
 import { motion } from 'framer-motion'
 import { 
@@ -20,7 +21,10 @@ import {
   Shield,
   Clock,
   Loader2,
-  AlertCircle
+  AlertCircle,
+  Monitor,
+  Filter,
+  Layers
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -33,15 +37,28 @@ import { EditApiKeyModal } from '@/components/dashboard/edit-api-key-modal'
 import { UsageChart, ErrorChart, EndpointChart, ResponseTimeChart } from '@/components/dashboard/analytics-chart'
 import { TimeWindowSelector, QuickTimeButtons, TimeWindow, TIME_WINDOWS } from '@/components/dashboard/time-window-selector'
 import { AnalyticsFilters, AnalyticsFilters as FilterType } from '@/components/dashboard/analytics-filters'
+import { TemplateSelector } from '@/components/key-management/template-selector'
+import { BulkOperations } from '@/components/key-management/bulk-operations'
+import { AdvancedFilters, FilterCriteria } from '@/components/key-management/advanced-filters'
+import { RealTimeMetrics } from '@/components/dashboard/real-time-metrics'
+import { CreateKeyFromTemplateData } from '@/types/templates'
 
 export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState('overview')
   const [showApiKey, setShowApiKey] = useState<string | null>(null)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
+  const [showTemplateSelector, setShowTemplateSelector] = useState(false)
   const [selectedApiKey, setSelectedApiKey] = useState<any>(null)
   const [recentActions, setRecentActions] = useState<any[]>([]) // Track live actions
   const [copiedKey, setCopiedKey] = useState<string | null>(null) // Track which key was copied
+  
+  // Advanced filtering state
+  const [keyFilters, setKeyFilters] = useState<FilterCriteria>({})
+  const [filteredKeys, setFilteredKeys] = useState<any[]>([])
+  
+  // Bulk operations state
+  const [selectedBulkKeys, setSelectedBulkKeys] = useState<Set<string>>(new Set())
   
   // Analytics state
   const [currentTimeWindow, setCurrentTimeWindow] = useState<TimeWindow>(TIME_WINDOWS[1]) // Default to "Last 24 Hours"
@@ -275,7 +292,7 @@ export default function DashboardPage() {
   }, [backendStatus, usageStats, statsError, apiKeys, apiKeysLoading, apiKeysError])
   
   // Process API keys to handle duplicates and improve UX
-  const displayApiKeys = Array.isArray(apiKeys) ? (() => {
+  const processedApiKeys = Array.isArray(apiKeys) ? (() => {
     const processedKeys = apiKeys.map((key: any) => ({
       ...key,
       permissions: key.scopes || key.permissions || ['read'], // Map scopes to permissions for frontend
@@ -302,10 +319,62 @@ export default function DashboardPage() {
     
     return Array.from(keyGroups.values())
   })() : mockApiKeys
+
+  // Apply advanced filters
+  const displayApiKeys = React.useMemo(() => {
+    if (!keyFilters || Object.keys(keyFilters).length === 0) {
+      return processedApiKeys
+    }
+
+    return processedApiKeys.filter((key: any) => {
+      // Search filter
+      if (keyFilters.search) {
+        const searchLower = keyFilters.search.toLowerCase()
+        if (!key.name.toLowerCase().includes(searchLower) && 
+            !key.description?.toLowerCase().includes(searchLower) &&
+            !key.key?.toLowerCase().includes(searchLower)) {
+          return false
+        }
+      }
+
+      // Status filter
+      if (keyFilters.status?.length && !keyFilters.status.includes(key.status)) {
+        return false
+      }
+
+      // Environment filter - map based on key name patterns
+      if (keyFilters.environment?.length) {
+        const keyEnv = key.name.toLowerCase().includes('prod') ? 'production' :
+                     key.name.toLowerCase().includes('dev') ? 'development' :
+                     key.name.toLowerCase().includes('staging') ? 'staging' : 'production'
+        if (!keyFilters.environment.includes(keyEnv)) {
+          return false
+        }
+      }
+
+      // Permission/scopes filter
+      if (keyFilters.scopes?.length) {
+        const keyScopes = key.permissions || key.scopes || []
+        if (!keyFilters.scopes.some(scope => keyScopes.includes(scope))) {
+          return false
+        }
+      }
+
+      // Request count filters
+      if (keyFilters.minRequests !== undefined && (key.total_requests || 0) < keyFilters.minRequests) {
+        return false
+      }
+      if (keyFilters.maxRequests !== undefined && (key.total_requests || 0) > keyFilters.maxRequests) {
+        return false
+      }
+
+      return true
+    })
+  }, [processedApiKeys, keyFilters])
   
   // Generate activity from API keys data when backend is available
   const displayActivity = backendStatus === 'available' && displayApiKeys.length > 0 ? (() => {
-    const activities = []
+    const activities: any[] = []
     
     // Sort API keys by most recent activity (created_at or last_used)
     const sortedKeys = [...displayApiKeys].sort((a, b) => {
@@ -382,7 +451,10 @@ export default function DashboardPage() {
 
   const navigation = [
     { id: 'overview', label: 'Overview', icon: BarChart3 },
+    { id: 'marketplace', label: 'API Marketplace', icon: Users, isExternal: true, href: '/marketplace' },
     { id: 'api-keys', label: 'API Keys', icon: Key },
+    { id: 'bulk-operations', label: 'Bulk Operations', icon: Layers },
+    { id: 'real-time-monitoring', label: 'Real-time Monitoring', icon: Monitor },
     { id: 'analytics', label: 'Analytics', icon: Activity },
     { id: 'settings', label: 'Settings', icon: Settings }
   ]
@@ -481,7 +553,46 @@ export default function DashboardPage() {
     return `${Math.floor(diffInSeconds / 86400)} days ago`
   }
 
-  // API Key handlers
+  // Template-based key creation handler
+  const handleCreateFromTemplate = async (data: CreateKeyFromTemplateData) => {
+    try {
+      // Convert template data to API format
+      const keyData = {
+        name: data.name,
+        description: data.description || '',
+        permissions: data.customScopes || [],
+        rate_limit: data.customRateLimit || 100,
+        expires_in_days: data.customExpirationDays,
+        allowed_ips: data.customAllowedIps,
+        allowed_domains: data.customAllowedDomains
+      }
+      
+      await createKeyMutate(
+        (data: any) => apiClient.createApiKey(data),
+        keyData
+      )
+      
+      toast({
+        title: "✅ Success",
+        description: "API key created from template successfully",
+        variant: "success" as any,
+        duration: 3000,
+      })
+      addRecentAction('API Key Created from Template', data.name, `Template: ${data.templateId}`)
+      await refetchApiKeys()
+      setShowTemplateSelector(false)
+    } catch (error) {
+      toast({
+        title: "❌ Error",
+        description: "Failed to create API key from template",
+        variant: "destructive",
+        duration: 4000,
+      })
+      throw error
+    }
+  }
+
+  // Traditional API Key handlers
   const handleCreateApiKey = async (keyData: {
     name: string
     description: string
@@ -507,6 +618,51 @@ export default function DashboardPage() {
       toast({
         title: "❌ Error",
         description: "Failed to create API key",
+        variant: "destructive",
+        duration: 4000,
+      })
+      throw error
+    }
+  }
+
+  // Bulk operations handler
+  const handleBulkOperation = async (operation: string, keyIds: string[], reason?: string) => {
+    try {
+      // Mock implementation - in real app, this would call the backend
+      const results = keyIds.map(keyId => ({
+        keyId,
+        success: Math.random() > 0.1, // 90% success rate for demo
+        error: Math.random() > 0.9 ? 'Network error' : undefined
+      }))
+
+      // Add actions for successful operations
+      const successfulKeys = results.filter(r => r.success)
+      successfulKeys.forEach(result => {
+        const key = displayApiKeys.find(k => k.id === result.keyId)
+        if (key) {
+          addRecentAction(
+            `Bulk ${operation.charAt(0).toUpperCase() + operation.slice(1)}`,
+            key.name,
+            reason || `Operation: ${operation}`
+          )
+        }
+      })
+
+      if (successfulKeys.length > 0) {
+        toast({
+          title: "✅ Bulk Operation Complete",
+          description: `${successfulKeys.length} of ${keyIds.length} keys processed successfully`,
+          variant: "success" as any,
+          duration: 3000,
+        })
+        await refetchApiKeys()
+      }
+
+      return results
+    } catch (error) {
+      toast({
+        title: "❌ Error",
+        description: "Bulk operation failed",
         variant: "destructive",
         duration: 4000,
       })
@@ -600,14 +756,14 @@ export default function DashboardPage() {
 
   return (
     <AuthWrapper>
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200">
+      <header className="bg-card border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
             <div>
               <div className="flex items-center gap-3">
-                <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+                <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
                 {/* Backend Status Indicator */}
                 <div className="flex items-center gap-2">
                   {backendStatus === 'checking' && (
@@ -630,21 +786,31 @@ export default function DashboardPage() {
                   )}
                 </div>
               </div>
-              <p className="text-gray-600">
+              <p className="text-muted-foreground">
                 {backendStatus === 'unavailable' 
                   ? 'Showing demo data - backend is not connected'
                   : 'Manage your API keys and monitor usage'
                 }
               </p>
             </div>
-            <Button 
-              className="btn-enterprise" 
-              disabled={backendStatus === 'unavailable'}
-              onClick={() => setShowCreateModal(true)}
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              New API Key
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                className="btn-enterprise" 
+                disabled={backendStatus === 'unavailable'}
+                onClick={() => setShowTemplateSelector(true)}
+              >
+                <Layers className="w-4 h-4 mr-2" />
+                Create from Template
+              </Button>
+              <Button 
+                variant="outline"
+                disabled={backendStatus === 'unavailable'}
+                onClick={() => setShowCreateModal(true)}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Custom Key
+              </Button>
+            </div>
           </div>
         </div>
       </header>
@@ -654,20 +820,34 @@ export default function DashboardPage() {
           {/* Sidebar Navigation */}
           <aside className="w-64 flex-shrink-0">
             <nav className="space-y-2">
-              {navigation.map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => setActiveTab(item.id)}
-                  className={`w-full flex items-center px-4 py-3 text-left rounded-lg transition-colors ${
-                    activeTab === item.id
-                      ? 'bg-blue-100 text-blue-700 border-l-4 border-blue-700'
-                      : 'text-gray-600 hover:bg-gray-100'
-                  }`}
-                >
-                  <item.icon className="w-5 h-5 mr-3" />
-                  {item.label}
-                </button>
-              ))}
+              {navigation.map((item) => {
+                if (item.isExternal && item.href) {
+                  return (
+                    <Link
+                      key={item.id}
+                      href={item.href}
+                      className="w-full flex items-center px-4 py-3 text-left rounded-lg transition-colors text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                    >
+                      <item.icon className="w-5 h-5 mr-3" />
+                      {item.label}
+                    </Link>
+                  )
+                }
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => setActiveTab(item.id)}
+                    className={`w-full flex items-center px-4 py-3 text-left rounded-lg transition-colors ${
+                      activeTab === item.id
+                        ? 'bg-blue-100 text-blue-700 border-l-4 border-blue-700'
+                        : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                    }`}
+                  >
+                    <item.icon className="w-5 h-5 mr-3" />
+                    {item.label}
+                  </button>
+                )
+              })}
             </nav>
           </aside>
 
@@ -681,7 +861,7 @@ export default function DashboardPage() {
               >
                 {/* Overview Header with Refresh */}
                 <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-xl font-semibold text-gray-900">Overview</h2>
+                  <h2 className="text-xl font-semibold text-foreground">Overview</h2>
                   <Button 
                     variant="outline" 
                     size="sm"
@@ -741,8 +921,8 @@ export default function DashboardPage() {
                         <CardContent className="p-6">
                           <div className="flex items-center justify-between">
                             <div>
-                              <p className="text-sm font-medium text-gray-600">{stat.label}</p>
-                              <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+                              <p className="text-sm font-medium text-muted-foreground">{stat.label}</p>
+                              <p className="text-2xl font-bold text-foreground">{stat.value}</p>
                             </div>
                             <div className={`flex items-center text-sm ${
                               stat.trend === 'up' ? 'text-green-600' : 'text-red-600'
@@ -772,16 +952,16 @@ export default function DashboardPage() {
                               activity.time === 'just now' ? 'bg-green-500' : 'bg-blue-600'
                             }`}></div>
                             <div>
-                              <p className="font-medium text-gray-900">{activity.action}</p>
-                              <p className="text-sm text-gray-500">{activity.key}</p>
+                              <p className="font-medium text-foreground">{activity.action}</p>
+                              <p className="text-sm text-muted-foreground">{activity.key}</p>
                               {activity.detail && (
-                                <p className="text-xs text-gray-400 mt-1">{activity.detail}</p>
+                                <p className="text-xs text-muted-foreground/70 mt-1">{activity.detail}</p>
                               )}
                             </div>
                           </div>
                           <div className="text-right">
                             <span className={`text-sm ${
-                              activity.time === 'just now' ? 'text-green-600 font-medium' : 'text-gray-500'
+                              activity.time === 'just now' ? 'text-green-600 font-medium' : 'text-muted-foreground'
                             }`}>{activity.time}</span>
                           </div>
                         </div>
@@ -799,29 +979,33 @@ export default function DashboardPage() {
                 transition={{ duration: 0.5 }}
               >
                 <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-xl font-semibold text-gray-900">API Keys</h2>
-                  <Button 
-                    className="btn-enterprise"
-                    disabled={backendStatus === 'unavailable'}
-                    onClick={() => setShowCreateModal(true)}
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Create New Key
-                  </Button>
+                  <h2 className="text-xl font-semibold text-foreground">API Keys</h2>
+                </div>
+
+                {/* Advanced Filters */}
+                <div className="mb-6">
+                  <AdvancedFilters
+                    filters={keyFilters}
+                    onFiltersChange={setKeyFilters}
+                    totalKeys={processedApiKeys.length}
+                    filteredKeys={displayApiKeys.length}
+                    availableEnvironments={['development', 'staging', 'production']}
+                    availableScopes={['read', 'write', 'admin', 'user:profile', 'user:manage', 'webhook', 'analytics']}
+                  />
                 </div>
 
                 {apiKeysLoading ? (
                   <div className="flex items-center justify-center py-12">
                     <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-                    <span className="ml-2 text-gray-600">Loading API keys...</span>
+                    <span className="ml-2 text-muted-foreground">Loading API keys...</span>
                   </div>
                 ) : apiKeysError ? (
                   <Card>
                     <CardContent className="p-6">
                       <div className="text-center py-8">
                         <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-                        <h3 className="text-lg font-medium text-gray-900 mb-2">Failed to load API keys</h3>
-                        <p className="text-gray-500 mb-4">{apiKeysError}</p>
+                        <h3 className="text-lg font-medium text-foreground mb-2">Failed to load API keys</h3>
+                        <p className="text-muted-foreground mb-4">{apiKeysError}</p>
                         <Button onClick={refetchApiKeys} variant="outline">
                           Try Again
                         </Button>
@@ -836,12 +1020,12 @@ export default function DashboardPage() {
                           <div className="flex items-center justify-between">
                             <div className="flex-1">
                               <div className="flex items-center mb-2">
-                                <h3 className="font-semibold text-gray-900 mr-3">{apiKey.name}</h3>
+                                <h3 className="font-semibold text-foreground mr-3">{apiKey.name}</h3>
                                 <Badge variant={apiKey.is_active ? 'default' : 'secondary'}>
                                   {apiKey.is_active ? 'active' : 'inactive'}
                                 </Badge>
                               </div>
-                              <div className="flex items-center space-x-4 text-sm text-gray-500">
+                              <div className="flex items-center space-x-4 text-sm text-muted-foreground">
                                 <span className="flex items-center">
                                   <Calendar className="w-4 h-4 mr-1" />
                                   Created {formatDate(apiKey.created_at)}
@@ -856,19 +1040,19 @@ export default function DashboardPage() {
                                 </span>
                               </div>
                               <div className="mt-2 flex items-center gap-2">
-                                <code className="bg-slate-800 text-green-400 px-3 py-1 rounded text-sm font-mono border border-slate-600 min-w-0 flex-1">
+                                <code className="bg-secondary text-primary px-3 py-1 rounded text-sm font-mono border border-border min-w-0 flex-1">
                                   {showApiKey === apiKey.id ? apiKey.key : maskApiKey(apiKey.key)}
                                 </code>
                                 <Button
                                   variant="outline"
                                   size="sm"
                                   onClick={() => setShowApiKey(showApiKey === apiKey.id ? null : apiKey.id)}
-                                  className="h-8 w-8 p-0 bg-white border-gray-300 hover:bg-gray-50"
+                                  className="h-8 w-8 p-0 bg-background border-border hover:bg-accent/10"
                                 >
                                   {showApiKey === apiKey.id ? (
-                                    <EyeOff className="w-4 h-4 text-gray-600" />
+                                    <EyeOff className="w-4 h-4 text-muted-foreground" />
                                   ) : (
-                                    <Eye className="w-4 h-4 text-gray-600" />
+                                    <Eye className="w-4 h-4 text-muted-foreground" />
                                   )}
                                 </Button>
                                 <Button
@@ -878,7 +1062,7 @@ export default function DashboardPage() {
                                   className={`h-8 w-8 p-0 border transition-all ${
                                     copiedKey === (apiKey.id || apiKey.key_id || apiKey.key)
                                       ? 'bg-green-50 border-green-300 hover:bg-green-100'
-                                      : 'bg-white border-gray-300 hover:bg-gray-50'
+                                      : 'bg-background border-border hover:bg-accent/10'
                                   }`}
                                 >
                                   {copiedKey === (apiKey.id || apiKey.key_id || apiKey.key) ? (
@@ -890,7 +1074,7 @@ export default function DashboardPage() {
                                       ✓
                                     </motion.div>
                                   ) : (
-                                    <Copy className="w-4 h-4 text-gray-600" />
+                                    <Copy className="w-4 h-4 text-muted-foreground" />
                                   )}
                                 </Button>
                               </div>
@@ -934,7 +1118,7 @@ export default function DashboardPage() {
                 transition={{ duration: 0.5 }}
               >
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-semibold text-gray-900">Analytics</h2>
+                  <h2 className="text-xl font-semibold text-foreground">Analytics</h2>
                   <QuickTimeButtons onWindowChange={handleTimeWindowChange} />
                 </div>
 
@@ -1018,13 +1202,46 @@ export default function DashboardPage() {
               </motion.div>
             )}
 
+            {activeTab === 'bulk-operations' && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+              >
+                <BulkOperations
+                  apiKeys={displayApiKeys}
+                  onBulkOperation={handleBulkOperation}
+                  isLoading={false}
+                />
+              </motion.div>
+            )}
+
+            {activeTab === 'real-time-monitoring' && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+              >
+                <RealTimeMetrics
+                  refreshInterval={30000}
+                  onRefresh={() => {
+                    toast({
+                      title: "Metrics Refreshed",
+                      description: "Real-time metrics have been updated",
+                      duration: 2000,
+                    })
+                  }}
+                />
+              </motion.div>
+            )}
+
             {activeTab === 'settings' && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
               >
-                <h2 className="text-xl font-semibold text-gray-900 mb-6">Settings</h2>
+                <h2 className="text-xl font-semibold text-foreground mb-6">Settings</h2>
                 
                 <div className="space-y-6">
                   <Card>
@@ -1035,32 +1252,32 @@ export default function DashboardPage() {
                     <CardContent>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
+                          <label className="block text-sm font-medium text-foreground mb-2">Full Name</label>
                           <input 
                             type="text" 
                             defaultValue="John Developer" 
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary bg-background text-foreground"
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                          <label className="block text-sm font-medium text-foreground mb-2">Email</label>
                           <input 
                             type="email" 
                             defaultValue="john@company.com" 
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary bg-background text-foreground"
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">Company</label>
+                          <label className="block text-sm font-medium text-foreground mb-2">Company</label>
                           <input 
                             type="text" 
                             defaultValue="Acme Corp" 
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary bg-background text-foreground"
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">Role</label>
-                          <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                          <label className="block text-sm font-medium text-foreground mb-2">Role</label>
+                          <select className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary bg-background text-foreground">
                             <option>Lead Developer</option>
                             <option>Backend Developer</option>
                             <option>Frontend Developer</option>
@@ -1083,34 +1300,34 @@ export default function DashboardPage() {
                       <div className="space-y-4">
                         <div className="flex items-center justify-between">
                           <div>
-                            <h4 className="font-medium text-gray-900">Email Notifications</h4>
-                            <p className="text-sm text-gray-500">Receive email alerts for API events</p>
+                            <h4 className="font-medium text-foreground">Email Notifications</h4>
+                            <p className="text-sm text-muted-foreground">Receive email alerts for API events</p>
                           </div>
                           <label className="relative inline-flex items-center cursor-pointer">
                             <input type="checkbox" className="sr-only peer" defaultChecked />
-                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                            <div className="w-11 h-6 bg-secondary peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-border after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
                           </label>
                         </div>
                         
                         <div className="flex items-center justify-between">
                           <div>
-                            <h4 className="font-medium text-gray-900">Rate Limit Alerts</h4>
-                            <p className="text-sm text-gray-500">Get notified when approaching rate limits</p>
+                            <h4 className="font-medium text-foreground">Rate Limit Alerts</h4>
+                            <p className="text-sm text-muted-foreground">Get notified when approaching rate limits</p>
                           </div>
                           <label className="relative inline-flex items-center cursor-pointer">
                             <input type="checkbox" className="sr-only peer" defaultChecked />
-                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                            <div className="w-11 h-6 bg-secondary peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-border after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
                           </label>
                         </div>
 
                         <div className="flex items-center justify-between">
                           <div>
-                            <h4 className="font-medium text-gray-900">Error Monitoring</h4>
-                            <p className="text-sm text-gray-500">Monitor and alert on API errors</p>
+                            <h4 className="font-medium text-foreground">Error Monitoring</h4>
+                            <p className="text-sm text-muted-foreground">Monitor and alert on API errors</p>
                           </div>
                           <label className="relative inline-flex items-center cursor-pointer">
                             <input type="checkbox" className="sr-only peer" />
-                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                            <div className="w-11 h-6 bg-secondary peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-border after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
                           </label>
                         </div>
                       </div>
@@ -1129,12 +1346,12 @@ export default function DashboardPage() {
                           <Button variant="outline">Enable 2FA</Button>
                         </div>
                         <div className="pt-4 border-t border-gray-200">
-                          <h4 className="font-medium text-gray-900 mb-2">API Key Security</h4>
-                          <p className="text-sm text-gray-500 mb-3">Configure security settings for your API keys</p>
+                          <h4 className="font-medium text-foreground mb-2">API Key Security</h4>
+                          <p className="text-sm text-muted-foreground mb-3">Configure security settings for your API keys</p>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-2">Default Key Expiration</label>
-                              <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                              <label className="block text-sm font-medium text-foreground mb-2">Default Key Expiration</label>
+                              <select className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary bg-background text-foreground">
                                 <option>Never</option>
                                 <option>30 days</option>
                                 <option>90 days</option>
@@ -1142,11 +1359,11 @@ export default function DashboardPage() {
                               </select>
                             </div>
                             <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-2">IP Whitelist</label>
+                              <label className="block text-sm font-medium text-foreground mb-2">IP Whitelist</label>
                               <input 
                                 type="text" 
                                 placeholder="192.168.1.0/24, 10.0.0.0/8"
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary bg-background text-foreground"
                               />
                             </div>
                           </div>
@@ -1178,6 +1395,21 @@ export default function DashboardPage() {
         isLoading={updateLoading}
         isRegenerating={regenerateLoading}
       />
+
+      {/* Template Selector Modal */}
+      {showTemplateSelector && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-6xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <TemplateSelector
+                onCreateKey={handleCreateFromTemplate}
+                onCancel={() => setShowTemplateSelector(false)}
+                isLoading={createLoading}
+              />
+            </div>
+          </div>
+        </div>
+      )}
       </div>
     </AuthWrapper>
   )

@@ -22,6 +22,11 @@ class ResourceType(str, Enum):
     BILLING = "billing"
     WEBHOOK = "webhook"
     INTEGRATION = "integration"
+    PAYMENT = "payment"
+    REFUND = "refund"
+    SUBSCRIPTION = "subscription"
+    TRANSACTION = "transaction"
+    PAYMENT_METHOD = "payment_method"
 
 
 class Permission(str, Enum):
@@ -156,7 +161,7 @@ class PermissionManager:
         APIKeyScope.admin: ScopeDefinition(
             name="admin",
             description="Complete administrative access",
-            inherits=["read", "write", "analytics", "user_management", "api_management"],
+            inherits=["read", "write", "analytics", "user_management", "api_management", "payment:read", "payment:write", "payment:admin"],
             permissions=[
                 ResourcePermission(ResourceType.ADMIN, Permission.MANAGE),
                 ResourcePermission(ResourceType.SYSTEM, Permission.CONFIGURE),
@@ -166,6 +171,52 @@ class PermissionManager:
                 ResourcePermission(ResourceType.BILLING, Permission.MANAGE),
                 ResourcePermission(ResourceType.WEBHOOK, Permission.MANAGE),
                 ResourcePermission(ResourceType.INTEGRATION, Permission.MANAGE),
+            ]
+        ),
+        
+        # Payment read access
+        APIKeyScope.payment_read: ScopeDefinition(
+            name="payment:read",
+            description="Read-only access to payment data",
+            permissions=[
+                ResourcePermission(ResourceType.PAYMENT, Permission.READ),
+                ResourcePermission(ResourceType.REFUND, Permission.READ),
+                ResourcePermission(ResourceType.SUBSCRIPTION, Permission.READ),
+                ResourcePermission(ResourceType.TRANSACTION, Permission.READ),
+                ResourcePermission(ResourceType.PAYMENT_METHOD, Permission.READ),
+                ResourcePermission(ResourceType.PAYMENT, Permission.LIST),
+                ResourcePermission(ResourceType.TRANSACTION, Permission.LIST),
+            ]
+        ),
+        
+        # Payment write access
+        APIKeyScope.payment_write: ScopeDefinition(
+            name="payment:write",
+            description="Process payments and manage payment methods",
+            inherits=["payment:read"],
+            permissions=[
+                ResourcePermission(ResourceType.PAYMENT, Permission.CREATE),
+                ResourcePermission(ResourceType.REFUND, Permission.CREATE),
+                ResourcePermission(ResourceType.SUBSCRIPTION, Permission.CREATE),
+                ResourcePermission(ResourceType.SUBSCRIPTION, Permission.UPDATE),
+                ResourcePermission(ResourceType.PAYMENT_METHOD, Permission.CREATE),
+                ResourcePermission(ResourceType.PAYMENT_METHOD, Permission.UPDATE),
+                ResourcePermission(ResourceType.PAYMENT_METHOD, Permission.DELETE),
+            ]
+        ),
+        
+        # Payment admin access
+        APIKeyScope.payment_admin: ScopeDefinition(
+            name="payment:admin",
+            description="Full payment administration and reporting",
+            inherits=["payment:read", "payment:write"],
+            permissions=[
+                ResourcePermission(ResourceType.PAYMENT, Permission.MANAGE),
+                ResourcePermission(ResourceType.REFUND, Permission.MANAGE),
+                ResourcePermission(ResourceType.SUBSCRIPTION, Permission.MANAGE),
+                ResourcePermission(ResourceType.TRANSACTION, Permission.EXPORT),
+                ResourcePermission(ResourceType.PAYMENT_METHOD, Permission.MANAGE),
+                ResourcePermission(ResourceType.BILLING, Permission.READ),
             ]
         ),
     }

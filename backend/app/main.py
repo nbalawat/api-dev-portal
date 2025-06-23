@@ -13,6 +13,7 @@ import os
 from .core.config import settings
 from .core.database import init_database, init_db, close_db
 from .routers import auth, users, api_keys, api_v1, permissions, rate_limits, analytics, key_lifecycle, ui, management, activity_logs, background_tasks, enhanced_rate_limits
+from .routers.marketplace import marketplace
 from .middleware import APIKeyAuthMiddleware
 from .middleware.rate_limiting import RateLimitMiddleware, get_rate_limit_manager
 
@@ -59,7 +60,7 @@ app.add_middleware(
 # API Key Authentication Middleware
 app.add_middleware(
     APIKeyAuthMiddleware,
-    enable_for_paths=["/api/v1/"]  # Enable API key auth for API v1 endpoints
+    enable_for_paths=["/api/v1/", "/marketplace/v1/"]  # Enable API key auth for API v1 and marketplace endpoints
 )
 
 # Rate Limiting Middleware (applied after API key auth)
@@ -105,6 +106,7 @@ app.include_router(management.router, prefix="/api", tags=["Management"])
 app.include_router(activity_logs.router, prefix="/api", tags=["Activity Logs"])
 app.include_router(background_tasks.router, prefix="/api", tags=["Background Tasks"])
 app.include_router(enhanced_rate_limits.router, prefix="/api", tags=["Enhanced Rate Limits"])
+app.include_router(marketplace.router, tags=["Payment Marketplace"])
 
 # Basic middleware for request timing
 @app.middleware("http")

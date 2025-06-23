@@ -4,66 +4,76 @@
 
 @layer base {
   :root {
-    /* Light theme - Clean modern palette */
+    /* Light theme - Sophisticated modern palette */
     --background: 0 0% 100%;
-    --foreground: 222 84% 4.9%;
+    --foreground: 222 47% 11%;
     --card: 0 0% 100%;
-    --card-foreground: 222 84% 4.9%;
+    --card-foreground: 222 47% 11%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222 84% 4.9%;
-    --primary: 221 83% 53%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 222 84% 4.9%;
-    --muted: 210 40% 96%;
-    --muted-foreground: 215 16% 47%;
-    --accent: 210 40% 96%;
-    --accent-foreground: 222 84% 4.9%;
+    --popover-foreground: 222 47% 11%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 214 95% 93%;
+    --secondary-foreground: 222 47% 11%;
+    --muted: 213 27% 84%;
+    --muted-foreground: 215 16% 35%;
+    --accent: 217 91% 60%;
+    --accent-foreground: 0 0% 100%;
     --destructive: 0 84% 60%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 0 0% 100%;
     --border: 214 32% 91%;
     --input: 214 32% 91%;
-    --ring: 221 83% 53%;
-    --radius: 0.5rem;
+    --ring: 217 91% 60%;
+    --radius: 0.75rem;
     
-    /* Status colors */
-    --success: 142 71% 45%;
-    --success-foreground: 355 25% 95%;
+    /* Status colors with better contrast */
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
     --warning: 38 92% 50%;
-    --warning-foreground: 48 96% 89%;
+    --warning-foreground: 0 0% 100%;
     --info: 199 89% 48%;
-    --info-foreground: 210 40% 98%;
+    --info-foreground: 0 0% 100%;
+    
+    /* Glass morphism variables */
+    --glass-bg: rgba(255, 255, 255, 0.8);
+    --glass-border: rgba(255, 255, 255, 0.18);
+    --glass-shadow: rgba(31, 38, 135, 0.15);
   }
 
   .dark {
-    /* Dark theme - Professional dark */
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 240 10% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 240 10% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 221 83% 53%;
-    --primary-foreground: 240 10% 3.9%;
-    --secondary: 240 3.7% 15.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
-    --accent: 240 3.7% 15.9%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 221 83% 53%;
+    /* Dark theme - Better contrast with lighter backgrounds */
+    --background: 222 20% 12%;
+    --foreground: 210 20% 98%;
+    --card: 222 20% 16%;
+    --card-foreground: 210 20% 98%;
+    --popover: 222 20% 16%;
+    --popover-foreground: 210 20% 98%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 222 47% 11%;
+    --secondary: 222 20% 24%;
+    --secondary-foreground: 210 20% 98%;
+    --muted: 222 20% 20%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 217 91% 60%;
+    --accent-foreground: 222 47% 11%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 222 20% 24%;
+    --input: 222 20% 20%;
+    --ring: 217 91% 60%;
     
-    /* Dark theme status colors */
-    --success: 142 76% 36%;
-    --success-foreground: 0 0% 98%;
+    /* Dark theme status colors with proper contrast */
+    --success: 142 70% 45%;
+    --success-foreground: 0 0% 100%;
     --warning: 38 92% 50%;
-    --warning-foreground: 240 10% 3.9%;
+    --warning-foreground: 222 47% 11%;
     --info: 199 89% 48%;
-    --info-foreground: 0 0% 98%;
+    --info-foreground: 0 0% 100%;
+    
+    /* Glass morphism variables for dark theme */
+    --glass-bg: rgba(40, 40, 50, 0.80);
+    --glass-border: rgba(255, 255, 255, 0.15);
+    --glass-shadow: rgba(0, 0, 0, 0.25);
   }
 }
 
@@ -79,53 +89,135 @@
 @layer components {
   /* Modern Navigation */
   .nav-modern {
-    @apply fixed top-0 left-0 right-0 z-50 px-6 py-4 bg-white/80 backdrop-blur-lg border-b border-gray-200/50;
+    @apply fixed top-0 left-0 right-0 z-50 px-6 py-4 backdrop-blur-xl border-b transition-all duration-300;
+    background: var(--glass-bg);
+    border-color: var(--glass-border);
+    box-shadow: 0 8px 32px 0 var(--glass-shadow);
   }
 
   /* Text Gradients */
   .text-gradient {
-    @apply bg-gradient-to-r from-blue-600 via-purple-600 to-blue-800 bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-blue-600 via-purple-600 to-blue-800 bg-clip-text text-transparent font-semibold;
   }
 
-  /* Enterprise Buttons */
+  /* Enterprise Buttons with enhanced styling */
   .btn-enterprise {
-    @apply px-8 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl;
+    @apply px-8 py-3 bg-primary text-primary-foreground rounded-xl font-medium transition-all duration-300 relative overflow-hidden;
+    box-shadow: 0 4px 15px 0 rgba(31, 38, 135, 0.2);
+  }
+  .btn-enterprise:hover {
+    @apply shadow-2xl transform -translate-y-0.5;
+    box-shadow: 0 8px 25px 0 rgba(31, 38, 135, 0.3);
+  }
+  .btn-enterprise:active {
+    @apply transform translate-y-0;
   }
 
   .btn-secondary {
-    @apply px-8 py-3 bg-white text-blue-600 border-2 border-blue-600 rounded-lg font-medium hover:bg-blue-600 hover:text-white transition-all duration-200 shadow-lg hover:shadow-xl;
+    @apply px-8 py-3 bg-background text-primary border-2 border-primary rounded-xl font-medium transition-all duration-300;
+    box-shadow: 0 2px 10px 0 rgba(0, 0, 0, 0.05);
+  }
+  .btn-secondary:hover {
+    @apply bg-primary text-primary-foreground shadow-lg transform -translate-y-0.5;
   }
 
   .btn-outline {
-    @apply px-6 py-2 border-2 border-blue-600 text-blue-600 rounded-lg font-medium hover:bg-blue-600 hover:text-white transition-all duration-200;
+    @apply px-6 py-2 border-2 border-primary text-primary rounded-xl font-medium transition-all duration-300;
+  }
+  .btn-outline:hover {
+    @apply bg-primary text-white shadow-md;
   }
 
-  /* Enterprise Cards */
+  /* Enhanced Card Styles */
   .card-enterprise {
-    @apply bg-white/90 backdrop-blur-sm border border-gray-200/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 p-6;
+    @apply rounded-2xl p-8 transition-all duration-300 relative overflow-hidden;
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 8px 32px 0 var(--glass-shadow);
+  }
+  .card-enterprise:hover {
+    @apply transform -translate-y-1;
+    box-shadow: 0 12px 40px 0 var(--glass-shadow);
   }
 
-  /* Stats Cards */
+  /* Stats Cards with depth */
   .stat-card {
-    @apply bg-white/90 backdrop-blur-sm border border-gray-200/50 rounded-xl p-6 text-center hover:shadow-lg transition-all duration-300;
+    @apply rounded-2xl p-6 text-center transition-all duration-300;
+    background: var(--glass-bg);
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 4px 20px 0 var(--glass-shadow);
+  }
+  .stat-card:hover {
+    @apply transform -translate-y-0.5;
+    box-shadow: 0 8px 30px 0 var(--glass-shadow);
   }
 
-  /* Feature Cards */
+  /* Feature Cards with subtle animations */
   .feature-card {
-    @apply bg-white/90 backdrop-blur-sm border border-gray-200/50 rounded-xl p-8 hover:shadow-xl transition-all duration-300 group;
+    @apply rounded-2xl p-8 transition-all duration-300 group relative overflow-hidden;
+    background: var(--glass-bg);
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 4px 20px 0 var(--glass-shadow);
+  }
+  .feature-card:hover {
+    @apply transform -translate-y-1;
+    box-shadow: 0 12px 40px 0 var(--glass-shadow);
+  }
+  .feature-card::before {
+    content: '';
+    @apply absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 transition-opacity duration-300;
+  }
+  .feature-card:hover::before {
+    @apply opacity-100;
   }
 
-  /* Glass Cards */
+  /* Glass Cards with proper contrast */
   .glass-card {
-    @apply bg-white/90 backdrop-blur-sm border border-gray-200/50 rounded-xl p-6 hover:shadow-lg transition-all duration-300;
+    @apply rounded-2xl p-6 transition-all duration-300;
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 4px 15px 0 var(--glass-shadow);
+  }
+  .glass-card:hover {
+    @apply transform -translate-y-0.5;
+    box-shadow: 0 8px 25px 0 var(--glass-shadow);
   }
 
   /* Modern Cards */
   .card-modern {
-    @apply bg-white border border-gray-200/50 rounded-xl shadow-sm hover:shadow-md transition-all duration-300;
+    @apply bg-card border border-border rounded-2xl shadow-sm transition-all duration-300;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  }
+  .card-modern:hover {
+    @apply shadow-lg transform -translate-y-0.5;
+    box-shadow: 0 10px 25px 0 rgba(0, 0, 0, 0.1), 0 6px 10px 0 rgba(0, 0, 0, 0.08);
   }
 
-  .card-glass {
-    @apply bg-white/90 backdrop-blur-sm border border-gray-200/50 rounded-xl shadow-sm hover:shadow-md transition-all duration-300;
+  /* Smooth transitions for all interactive elements */
+  * {
+    @apply transition-colors duration-300;
+  }
+
+  /* Enhanced focus states */
+  *:focus-visible {
+    @apply outline-none ring-2 ring-primary ring-offset-2 ring-offset-background;
+  }
+
+  /* Better hover states for clickable elements */
+  button, a, [role="button"] {
+    @apply transition-all duration-200 ease-out;
+  }
+
+  /* Typography improvements */
+  h1, h2, h3, h4, h5, h6 {
+    @apply tracking-tight;
+  }
+
+  p {
+    @apply leading-relaxed;
   }
 }

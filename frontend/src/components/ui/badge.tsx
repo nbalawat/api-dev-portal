@@ -3,27 +3,27 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const badgeVariants = cva(
-  "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+  "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2",
   {
     variants: {
       variant: {
         default:
-          "border-transparent bg-primary text-primary-foreground hover:bg-primary/80",
+          "border-transparent bg-blue-100 text-blue-900 dark:bg-blue-900/20 dark:text-blue-400",
         secondary:
-          "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80",
+          "border-transparent bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-gray-100",
         destructive:
-          "border-transparent bg-error-600 text-error-50 hover:bg-error-700",
-        outline: "text-foreground",
+          "border-transparent bg-red-100 text-red-900 dark:bg-red-900/20 dark:text-red-400",
+        outline: "text-gray-900 dark:text-gray-100 border-gray-200 dark:border-gray-700 bg-transparent",
         success:
-          "border-transparent bg-success-600 text-success-50 hover:bg-success-700",
+          "border-transparent bg-green-100 text-green-900 dark:bg-green-900/20 dark:text-green-400",
         warning:
-          "border-transparent bg-warning-600 text-warning-50 hover:bg-warning-700",
+          "border-transparent bg-amber-100 text-amber-900 dark:bg-amber-900/20 dark:text-amber-400",
         info:
-          "border-transparent bg-primary-600 text-primary-50 hover:bg-primary-700",
+          "border-transparent bg-blue-100 text-blue-900 dark:bg-blue-900/20 dark:text-blue-400",
         glass:
-          "border-white/20 bg-white/10 text-slate-900 backdrop-blur-sm",
+          "border border-gray-200/50 dark:border-gray-700/50 bg-white/80 dark:bg-gray-900/80 text-gray-900 dark:text-gray-100 backdrop-blur-sm",
         gradient:
-          "border-transparent bg-gradient-to-r from-primary-600 to-primary-700 text-white",
+          "border-transparent bg-gradient-to-r from-blue-600 to-purple-600 text-white",
       },
       size: {
         default: "px-2.5 py-0.5 text-xs",

@@ -1,4 +1,49 @@
 // API Client for connecting frontend to backend
+import type {
+  MarketplaceHealth,
+  MarketplaceStatus,
+  PaymentData,
+  Payment,
+  PaymentListParams,
+  PaymentListResponse,
+  RefundData,
+  Refund,
+  SubscriptionData,
+  Subscription,
+  SubscriptionPlansResponse,
+  TransactionSearchData,
+  TransactionSearchResponse,
+  TransactionAnalyticsParams,
+  TransactionAnalytics,
+  PaymentMethodData,
+  PaymentMethod,
+  BankVerificationData,
+  BankVerification,
+  MicroDepositConfirmation,
+  BankInfo,
+  ExchangeRateParams,
+  ExchangeRatesResponse,
+  CurrencyConversionData,
+  CurrencyConversion,
+  CurrencyHistoryParams,
+  CurrencyHistory,
+  CreditScoreData,
+  CreditScore,
+  LendingDecisionData,
+  LendingDecision,
+  CreditHistoryParams,
+  CreditHistory,
+  RevenueAnalyticsData,
+  RevenueAnalytics,
+  ReconciliationData,
+  ReconciliationReport,
+  TaxSummaryParams,
+  TaxSummary,
+  CashFlowParams,
+  CashFlowReport,
+  FinancialDashboardMetrics
+} from '@/types/marketplace'
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
 class ApiError extends Error {
@@ -322,6 +367,206 @@ class ApiClient {
   // Health Check
   async healthCheck() {
     return this.request<{ status: string }>('/health')
+  }
+
+  // Marketplace APIs
+  async getMarketplaceHealth() {
+    return this.request<MarketplaceHealth>('/marketplace/health')
+  }
+
+  async getMarketplaceStatus(apiKey: string) {
+    return this.request<MarketplaceStatus>('/marketplace/status', {
+      headers: { 'X-API-Key': apiKey }
+    })
+  }
+
+  // Phase 1: Core Payment Processing APIs
+  async processPayment(paymentData: PaymentData, apiKey: string) {
+    return this.request<Payment>('/marketplace/v1/payments/process', {
+      method: 'POST',
+      headers: { 'X-API-Key': apiKey },
+      body: JSON.stringify(paymentData)
+    })
+  }
+
+  async getPayment(paymentId: string, apiKey: string) {
+    return this.request<Payment>(`/marketplace/v1/payments/${paymentId}`, {
+      headers: { 'X-API-Key': apiKey }
+    })
+  }
+
+  async listPayments(params: PaymentListParams, apiKey: string) {
+    const query = new URLSearchParams(params as any).toString()
+    return this.request<PaymentListResponse>(`/marketplace/v1/payments/?${query}`, {
+      headers: { 'X-API-Key': apiKey }
+    })
+  }
+
+  async createRefund(refundData: RefundData, apiKey: string) {
+    return this.request<Refund>('/marketplace/v1/refunds/create', {
+      method: 'POST',
+      headers: { 'X-API-Key': apiKey },
+      body: JSON.stringify(refundData)
+    })
+  }
+
+  async getRefund(refundId: string, apiKey: string) {
+    return this.request<Refund>(`/marketplace/v1/refunds/${refundId}`, {
+      headers: { 'X-API-Key': apiKey }
+    })
+  }
+
+  async createSubscription(subscriptionData: SubscriptionData, apiKey: string) {
+    return this.request<Subscription>('/marketplace/v1/subscriptions/create', {
+      method: 'POST',
+      headers: { 'X-API-Key': apiKey },
+      body: JSON.stringify(subscriptionData)
+    })
+  }
+
+  async getSubscription(subscriptionId: string, apiKey: string) {
+    return this.request<Subscription>(`/marketplace/v1/subscriptions/${subscriptionId}`, {
+      headers: { 'X-API-Key': apiKey }
+    })
+  }
+
+  async listSubscriptionPlans(apiKey: string) {
+    return this.request<SubscriptionPlansResponse>('/marketplace/v1/subscriptions/plans/list', {
+      headers: { 'X-API-Key': apiKey }
+    })
+  }
+
+  async searchTransactions(searchData: TransactionSearchData, apiKey: string) {
+    return this.request<TransactionSearchResponse>('/marketplace/v1/transactions/search', {
+      method: 'POST',
+      headers: { 'X-API-Key': apiKey },
+      body: JSON.stringify(searchData)
+    })
+  }
+
+  async getTransactionAnalytics(params: TransactionAnalyticsParams, apiKey: string) {
+    const query = new URLSearchParams(params as any).toString()
+    return this.request<TransactionAnalytics>(`/marketplace/v1/transactions/analytics/summary?${query}`, {
+      headers: { 'X-API-Key': apiKey }
+    })
+  }
+
+  async createPaymentMethod(paymentMethodData: PaymentMethodData, apiKey: string) {
+    return this.request<PaymentMethod>('/marketplace/v1/payment-methods/create', {
+      method: 'POST',
+      headers: { 'X-API-Key': apiKey },
+      body: JSON.stringify(paymentMethodData)
+    })
+  }
+
+  async getPaymentMethod(paymentMethodId: string, apiKey: string) {
+    return this.request<PaymentMethod>(`/marketplace/v1/payment-methods/${paymentMethodId}`, {
+      headers: { 'X-API-Key': apiKey }
+    })
+  }
+
+  // Phase 2: Financial Services APIs
+  async initiateBankVerification(verificationData: BankVerificationData, apiKey: string) {
+    return this.request<BankVerification>('/marketplace/v1/bank-verification/initiate', {
+      method: 'POST',
+      headers: { 'X-API-Key': apiKey },
+      body: JSON.stringify(verificationData)
+    })
+  }
+
+  async confirmMicroDeposits(verificationId: string, confirmationData: MicroDepositConfirmation, apiKey: string) {
+    return this.request<BankVerification>(`/marketplace/v1/bank-verification/${verificationId}/confirm`, {
+      method: 'POST',
+      headers: { 'X-API-Key': apiKey },
+      body: JSON.stringify(confirmationData)
+    })
+  }
+
+  async getBankInfo(routingNumber: string, apiKey: string) {
+    return this.request<BankInfo>(`/marketplace/v1/bank-verification/routing/${routingNumber}/info`, {
+      headers: { 'X-API-Key': apiKey }
+    })
+  }
+
+  async getExchangeRates(params: ExchangeRateParams, apiKey: string) {
+    const query = new URLSearchParams(params as any).toString()
+    return this.request<ExchangeRatesResponse>(`/marketplace/v1/fx/rates?${query}`, {
+      headers: { 'X-API-Key': apiKey }
+    })
+  }
+
+  async convertCurrency(conversionData: CurrencyConversionData, apiKey: string) {
+    return this.request<CurrencyConversion>('/marketplace/v1/fx/convert', {
+      method: 'POST',
+      headers: { 'X-API-Key': apiKey },
+      body: JSON.stringify(conversionData)
+    })
+  }
+
+  async getCurrencyHistory(fromCurrency: string, toCurrency: string, params: CurrencyHistoryParams, apiKey: string) {
+    const query = new URLSearchParams(params as any).toString()
+    return this.request<CurrencyHistory>(`/marketplace/v1/fx/history/${fromCurrency}/${toCurrency}?${query}`, {
+      headers: { 'X-API-Key': apiKey }
+    })
+  }
+
+  async getCreditScore(creditData: CreditScoreData, apiKey: string) {
+    return this.request<CreditScore>('/marketplace/v1/credit/score', {
+      method: 'POST',
+      headers: { 'X-API-Key': apiKey },
+      body: JSON.stringify(creditData)
+    })
+  }
+
+  async makeLendingDecision(lendingData: LendingDecisionData, apiKey: string) {
+    return this.request<LendingDecision>('/marketplace/v1/credit/decision', {
+      method: 'POST',
+      headers: { 'X-API-Key': apiKey },
+      body: JSON.stringify(lendingData)
+    })
+  }
+
+  async getCreditHistory(customerId: string, params: CreditHistoryParams, apiKey: string) {
+    const query = new URLSearchParams(params as any).toString()
+    return this.request<CreditHistory>(`/marketplace/v1/credit/history/${customerId}?${query}`, {
+      headers: { 'X-API-Key': apiKey }
+    })
+  }
+
+  async generateRevenueAnalytics(analyticsData: RevenueAnalyticsData, apiKey: string) {
+    return this.request<RevenueAnalytics>('/marketplace/v1/financial-reporting/revenue-analytics', {
+      method: 'POST',
+      headers: { 'X-API-Key': apiKey },
+      body: JSON.stringify(analyticsData)
+    })
+  }
+
+  async generateReconciliationReport(reconciliationData: ReconciliationData, apiKey: string) {
+    return this.request<ReconciliationReport>('/marketplace/v1/financial-reporting/reconciliation', {
+      method: 'POST',
+      headers: { 'X-API-Key': apiKey },
+      body: JSON.stringify(reconciliationData)
+    })
+  }
+
+  async getTaxSummary(year: number, params: TaxSummaryParams, apiKey: string) {
+    const query = new URLSearchParams(params as any).toString()
+    return this.request<TaxSummary>(`/marketplace/v1/financial-reporting/tax-summary/${year}?${query}`, {
+      headers: { 'X-API-Key': apiKey }
+    })
+  }
+
+  async getCashFlowReport(params: CashFlowParams, apiKey: string) {
+    const query = new URLSearchParams(params as any).toString()
+    return this.request<CashFlowReport>(`/marketplace/v1/financial-reporting/cash-flow?${query}`, {
+      headers: { 'X-API-Key': apiKey }
+    })
+  }
+
+  async getFinancialDashboardMetrics(apiKey: string) {
+    return this.request<FinancialDashboardMetrics>('/marketplace/v1/financial-reporting/metrics/dashboard', {
+      headers: { 'X-API-Key': apiKey }
+    })
   }
 }
 

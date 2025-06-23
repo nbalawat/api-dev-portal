@@ -222,5 +222,80 @@ downloads/
 dump.rdb
 appendonly.aof
 
-# node modules
-node_modules
+# Frontend specific (Node.js/Next.js)
+frontend/node_modules/
+frontend/.next/**
+frontend/.next/
+frontend/.vercel/
+frontend/out/
+frontend/build/
+frontend/dist/
+frontend/.env
+frontend/.env.local
+frontend/.env.development.local
+frontend/.env.test.local
+frontend/.env.production.local
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+frontend/.pnpm-debug.log*
+frontend/.turbo/
+frontend/coverage/
+frontend/.nyc_output/
+frontend/next-env.d.ts
+frontend/.cache/
+frontend/public/sw.js
+frontend/public/workbox-*.js
+frontend/public/worker-*.js
+frontend/public/sw.js.map
+frontend/public/workbox-*.js.map
+frontend/public/worker-*.js.map
+
+# Backend specific (Python/FastAPI)
+backend/__pycache__/
+backend/*.py[cod]
+backend/*$py.class
+backend/.pytest_cache/
+backend/.coverage
+backend/htmlcov/
+backend/coverage.xml
+backend/.tox/
+backend/.mypy_cache/
+backend/.dmypy.json
+backend/dmypy.json
+backend/instance/
+backend/.webassets-cache
+backend/.venv/
+backend/venv/
+backend/ENV/
+backend/env/
+backend/.env
+backend/.env.local
+backend/.env.production
+backend/alembic/versions/*.py
+backend/uploads/
+backend/logs/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+postgresql_data/
+mysql_data/
+
+# Docker
+docker-compose.override.yml
+.dockerignore
+
+# Global Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Package-lock files (keep one, ignore others based on preference)
+# Uncomment the ones you want to ignore:
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
