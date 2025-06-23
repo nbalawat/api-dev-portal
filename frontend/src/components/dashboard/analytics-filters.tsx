@@ -206,7 +206,7 @@ export function AnalyticsFilters({
                 </Badge>
               ))}
               {filters.apiKeys.map(keyId => {
-                const apiKey = apiKeys?.find(k => String(k.id) === keyId)
+                const apiKey = apiKeys?.find((k: any) => String(k.id) === keyId)
                 return (
                   <Badge key={keyId} variant="outline" className="flex items-center gap-1">
                     <Key className="w-3 h-3" />
@@ -367,7 +367,7 @@ export function AnalyticsFilters({
           {filters.apiKeys.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {filters.apiKeys.map(keyId => {
-                const apiKey = apiKeys?.find(k => String(k.id) === keyId)
+                const apiKey = apiKeys?.find((k: any) => String(k.id) === keyId)
                 return (
                   <Badge key={keyId} variant="default" className="flex items-center gap-1">
                     {apiKey?.name || keyId.slice(0, 8)}

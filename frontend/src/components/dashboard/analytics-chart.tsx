@@ -193,7 +193,7 @@ export function EndpointChart({
           dataKey="value"
           label={({ name, percent }) => `${name.split('/').pop()} ${(percent * 100).toFixed(0)}%`}
         >
-          {chartData.map((entry, index) => (
+          {chartData.map((entry: any, index: number) => (
             <Cell key={`cell-${index}`} fill={entry.color} />
           ))}
         </Pie>

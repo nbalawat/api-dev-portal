@@ -42,6 +42,7 @@ import { BulkOperations } from '@/components/key-management/bulk-operations'
 import { AdvancedFilters, FilterCriteria } from '@/components/key-management/advanced-filters'
 import { RealTimeMetrics } from '@/components/dashboard/real-time-metrics'
 import { CreateKeyFromTemplateData } from '@/types/templates'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 
 export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState('overview')
@@ -1397,19 +1398,15 @@ export default function DashboardPage() {
       />
 
       {/* Template Selector Modal */}
-      {showTemplateSelector && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-6xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <TemplateSelector
-                onCreateKey={handleCreateFromTemplate}
-                onCancel={() => setShowTemplateSelector(false)}
-                isLoading={createLoading}
-              />
-            </div>
-          </div>
-        </div>
-      )}
+      <Dialog open={showTemplateSelector} onOpenChange={setShowTemplateSelector}>
+        <DialogContent className="max-w-6xl w-full max-h-[90vh] overflow-y-auto">
+          <TemplateSelector
+            onCreateKey={handleCreateFromTemplate}
+            onCancel={() => setShowTemplateSelector(false)}
+            isLoading={createLoading}
+          />
+        </DialogContent>
+      </Dialog>
       </div>
     </AuthWrapper>
   )

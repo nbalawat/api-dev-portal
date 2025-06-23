@@ -122,7 +122,7 @@ export function TemplateSelector({ onCreateKey, onCancel, isLoading }: TemplateS
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold">Customize API Key</h3>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Customize API Key</h3>
           <p className="text-sm text-gray-700 dark:text-gray-300">
             Based on template: <span className="font-medium">{selectedTemplate?.name}</span>
           </p>
@@ -245,16 +245,25 @@ export function TemplateSelector({ onCreateKey, onCancel, isLoading }: TemplateS
       </div>
 
       <div className="flex justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
-        <Button variant="outline" onClick={onCancel}>
+        <Button 
+          variant="outline" 
+          onClick={onCancel}
+          className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700"
+        >
           Cancel
         </Button>
         <div className="space-x-2">
-          <Button variant="outline" onClick={() => setStep('select')}>
+          <Button 
+            variant="outline" 
+            onClick={() => setStep('select')}
+            className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700"
+          >
             Back
           </Button>
           <Button 
             onClick={handleCreateKey} 
             disabled={!customization.name || isLoading}
+            className="bg-blue-600 hover:bg-blue-700 text-white"
           >
             {isLoading ? 'Creating...' : 'Create API Key'}
           </Button>
@@ -270,8 +279,8 @@ export function TemplateSelector({ onCreateKey, onCancel, isLoading }: TemplateS
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold">Create API Key from Template</h2>
-        <p className="text-gray-600 mt-1">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Create API Key from Template</h2>
+        <p className="text-gray-600 dark:text-gray-400 mt-1">
           Choose a pre-configured template to quickly create an API key with the right permissions and settings.
         </p>
       </div>
@@ -288,8 +297,8 @@ export function TemplateSelector({ onCreateKey, onCancel, isLoading }: TemplateS
         {DEFAULT_TEMPLATES.map((category) => (
           <TabsContent key={category.id} value={category.id} className="space-y-4">
             <div>
-              <h3 className="text-lg font-semibold">{category.name}</h3>
-              <p className="text-sm text-gray-600">{category.description}</p>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{category.name}</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">{category.description}</p>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -302,10 +311,14 @@ export function TemplateSelector({ onCreateKey, onCancel, isLoading }: TemplateS
       </Tabs>
 
       <div className="flex justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
-        <Button variant="outline" onClick={onCancel}>
+        <Button 
+          variant="outline" 
+          onClick={onCancel}
+          className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700"
+        >
           Cancel
         </Button>
-        <Button variant="outline">
+        <Button variant="outline" className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700">
           <Settings className="h-4 w-4 mr-2" />
           Create Custom Key
         </Button>

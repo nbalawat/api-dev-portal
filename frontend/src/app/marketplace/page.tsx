@@ -259,6 +259,17 @@ export default function MarketplacePage() {
     return icons[categoryId as keyof typeof icons] || <Code className="h-6 w-6" />
   }
 
+  const getHealthStatusBadgeVariant = (status: string): 'success' | 'warning' | 'destructive' | 'secondary' => {
+    const variants = {
+      healthy: 'success' as const,
+      operational: 'success' as const,
+      degraded: 'warning' as const,
+      down: 'destructive' as const,
+      error: 'destructive' as const
+    }
+    return variants[status as keyof typeof variants] || 'secondary' as const
+  }
+
   const getMethodBadgeVariant = (method: string): 'default' | 'success' | 'warning' | 'destructive' | 'secondary' => {
     const variants = {
       GET: 'default' as const,
@@ -410,7 +421,7 @@ export default function MarketplacePage() {
                 </div>
               ) : marketplaceHealth ? (
                 <div className="space-y-2">
-                  <Badge className={getHealthStatusBadge(marketplaceHealth.status)}>
+                  <Badge variant={getHealthStatusBadgeVariant(marketplaceHealth.status)}>
                     {marketplaceHealth.status.toUpperCase()}
                   </Badge>
                   <p className="text-xs text-muted-foreground">
