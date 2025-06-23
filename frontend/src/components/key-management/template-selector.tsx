@@ -76,7 +76,7 @@ export function TemplateSelector({ onCreateKey, onCancel, isLoading }: TemplateS
         
         <div className="space-y-2 text-sm">
           <div className="flex items-center justify-between">
-            <span className="flex items-center text-gray-600">
+            <span className="flex items-center text-gray-700 dark:text-gray-300">
               <Clock className="h-4 w-4 mr-1" />
               Expires in
             </span>
@@ -84,7 +84,7 @@ export function TemplateSelector({ onCreateKey, onCancel, isLoading }: TemplateS
           </div>
           
           <div className="flex items-center justify-between">
-            <span className="flex items-center text-gray-600">
+            <span className="flex items-center text-gray-700 dark:text-gray-300">
               <Zap className="h-4 w-4 mr-1" />
               Rate limit
             </span>
@@ -94,7 +94,7 @@ export function TemplateSelector({ onCreateKey, onCancel, isLoading }: TemplateS
           </div>
           
           <div className="flex items-center justify-between">
-            <span className="flex items-center text-gray-600">
+            <span className="flex items-center text-gray-700 dark:text-gray-300">
               <Shield className="h-4 w-4 mr-1" />
               Scopes
             </span>
@@ -123,7 +123,7 @@ export function TemplateSelector({ onCreateKey, onCancel, isLoading }: TemplateS
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg font-semibold">Customize API Key</h3>
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-gray-700 dark:text-gray-300">
             Based on template: <span className="font-medium">{selectedTemplate?.name}</span>
           </p>
         </div>
@@ -244,7 +244,7 @@ export function TemplateSelector({ onCreateKey, onCancel, isLoading }: TemplateS
         </div>
       </div>
 
-      <div className="flex justify-between pt-4 border-t">
+      <div className="flex justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
         <Button variant="outline" onClick={onCancel}>
           Cancel
         </Button>
@@ -301,7 +301,7 @@ export function TemplateSelector({ onCreateKey, onCancel, isLoading }: TemplateS
         ))}
       </Tabs>
 
-      <div className="flex justify-between pt-4 border-t">
+      <div className="flex justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
         <Button variant="outline" onClick={onCancel}>
           Cancel
         </Button>

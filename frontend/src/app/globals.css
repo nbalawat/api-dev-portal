@@ -197,6 +197,19 @@
     box-shadow: 0 10px 25px 0 rgba(0, 0, 0, 0.1), 0 6px 10px 0 rgba(0, 0, 0, 0.08);
   }
 
+  /* Card Styles */
+  .card-modern {
+    @apply bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 p-6 shadow-sm;
+  }
+  
+  .card-glass {
+    @apply p-6;
+    background: var(--glass-bg);
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 4px 20px 0 var(--glass-shadow);
+  }
+
   /* Smooth transitions for all interactive elements */
   * {
     @apply transition-colors duration-300;

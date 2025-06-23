@@ -15,7 +15,7 @@ const badgeVariants = cva(
           "border-transparent bg-red-100 text-red-900 dark:bg-red-900/20 dark:text-red-400",
         outline: "text-gray-900 dark:text-gray-100 border-gray-200 dark:border-gray-700 bg-transparent",
         success:
-          "border-transparent bg-green-100 text-green-900 dark:bg-green-900/20 dark:text-green-400",
+          "border-transparent bg-green-600 text-white dark:bg-green-700 dark:text-white",
         warning:
           "border-transparent bg-amber-100 text-amber-900 dark:bg-amber-900/20 dark:text-amber-400",
         info:

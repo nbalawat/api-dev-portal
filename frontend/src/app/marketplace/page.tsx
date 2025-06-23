@@ -228,15 +228,15 @@ export default function MarketplacePage() {
     }
   }
 
-  const getHealthStatusBadge = (status: string) => {
+  const getHealthStatusVariant = (status: string): 'success' | 'warning' | 'destructive' | 'secondary' => {
     const variants = {
-      healthy: 'bg-green-500 text-white dark:bg-green-600',
-      operational: 'bg-green-500 text-white dark:bg-green-600',
-      degraded: 'bg-yellow-500 text-white dark:bg-yellow-600',
-      down: 'bg-red-500 text-white dark:bg-red-600',
-      error: 'bg-red-500 text-white dark:bg-red-600'
+      healthy: 'success' as const,
+      operational: 'success' as const,
+      degraded: 'warning' as const,
+      down: 'destructive' as const,
+      error: 'destructive' as const
     }
-    return variants[status as keyof typeof variants] || 'bg-gray-500 text-white dark:bg-gray-600'
+    return variants[status as keyof typeof variants] || 'secondary' as const
   }
 
   const formatUptime = (uptimeSeconds: number) => {
@@ -259,14 +259,14 @@ export default function MarketplacePage() {
     return icons[categoryId as keyof typeof icons] || <Code className="h-6 w-6" />
   }
 
-  const getMethodBadgeColor = (method: string) => {
-    const colors = {
-      GET: 'bg-blue-500 text-white dark:bg-blue-600',
-      POST: 'bg-green-500 text-white dark:bg-green-600',
-      PUT: 'bg-yellow-500 text-white dark:bg-yellow-600',
-      DELETE: 'bg-red-500 text-white dark:bg-red-600'
+  const getMethodBadgeVariant = (method: string): 'default' | 'success' | 'warning' | 'destructive' | 'secondary' => {
+    const variants = {
+      GET: 'default' as const,
+      POST: 'success' as const,
+      PUT: 'warning' as const,
+      DELETE: 'destructive' as const
     }
-    return colors[method as keyof typeof colors] || 'bg-gray-500 text-white dark:bg-gray-600'
+    return variants[method as keyof typeof variants] || 'secondary' as const
   }
 
   const handleTestApi = (api: MarketplaceApiCall) => {
@@ -597,7 +597,7 @@ export default function MarketplacePage() {
                           <div className="flex items-start justify-between">
                             <div className="space-y-2">
                               <div className="flex items-center gap-2">
-                                <Badge className={getMethodBadgeColor(api.method)}>
+                                <Badge variant={getMethodBadgeVariant(api.method)}>
                                   {api.method}
                                 </Badge>
                                 {api.requiresApiKey && (
