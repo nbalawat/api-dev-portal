@@ -1,6 +1,6 @@
 #!/bin/bash
-# One-click deployment script for GCP
-# Run this from your local machine with gcloud configured
+# Optimized deployment script for GCP
+# Uses docker-compose.prod.yml without profiles for faster deployment
 
 set -e
 
@@ -10,7 +10,7 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-echo -e "${GREEN}=== API Developer Portal - Quick GCP Deploy ===${NC}"
+echo -e "${GREEN}=== API Developer Portal - Optimized GCP Deploy ===${NC}"
 
 # Default service account path (hardcoded)
 DEFAULT_SA_PATH="/Users/nbalawat/development/scalable-rag-pipeline-with-access-entitlements/infrastructure/service-accounts/deploy-dev-sa.json"
@@ -101,6 +101,10 @@ exec 2>&1
 
 echo "Starting deployment at $(date)"
 
+# Update system
+apt-get update
+apt-get install -y ca-certificates curl gnupg lsb-release
+
 # Install Docker
 curl -fsSL https://get.docker.com -o get-docker.sh
 sh get-docker.sh
@@ -126,30 +130,38 @@ SECRET_KEY=demo-secret-$(date +%s)
 JWT_SECRET_KEY=demo-jwt-$(date +%s)
 EOF
 
-chown ubuntu:ubuntu .env
-
 # Copy .env to .env.dev
-cp .env .env.dev || true
-chown ubuntu:ubuntu .env.dev
+cp .env .env.dev
+chown ubuntu:ubuntu .env .env.dev
 
-# Start backend services first (without frontend profile)
-sudo -u ubuntu /usr/local/bin/docker-compose up -d postgres redis backend
+# Use production compose file if available
+if [ -f "docker-compose.prod.yml" ]; then
+    echo "Using docker-compose.prod.yml"
+    COMPOSE_FILE="docker-compose.prod.yml"
+else
+    echo "Using docker-compose.yml"
+    COMPOSE_FILE="docker-compose.yml"
+fi
+
+# Start backend services first
+echo "Starting backend services..."
+sudo -u ubuntu /usr/local/bin/docker-compose -f $COMPOSE_FILE up -d postgres redis backend
 
 # Wait for backend to be healthy
 echo "Waiting for backend services to be healthy..."
 sleep 30
 
-# Start frontend with profile (build in background)
-echo "Starting frontend build (this may take a few minutes)..."
-sudo -u ubuntu nohup /usr/local/bin/docker-compose --profile frontend up -d frontend > /tmp/frontend-build.log 2>&1 &
+# Start frontend (this will build in the foreground for better reliability)
+echo "Building and starting frontend..."
+sudo -u ubuntu /usr/local/bin/docker-compose -f $COMPOSE_FILE up -d frontend
 
-# Check backend services
-sudo -u ubuntu /usr/local/bin/docker-compose ps
+# Final check
+echo "Checking all services..."
+sudo -u ubuntu /usr/local/bin/docker-compose -f $COMPOSE_FILE ps
 
 echo ""
-echo "Backend services started. Frontend build is running in background."
-echo "Frontend build logs: /tmp/frontend-build.log"
-echo "Deployment initiated at $(date)"
+echo "Deployment completed at $(date)"
+echo "All services should be running. Frontend may take a few more minutes to build."
 SCRIPT_END
 )
 
@@ -162,7 +174,7 @@ echo "$STARTUP_SCRIPT" > "$TEMP_FILE"
 
 echo -e "${YELLOW}Creating VM instance...${NC}"
 
-# Create the instance
+# Create the instance with larger machine type for faster builds
 gcloud compute instances create "$INSTANCE_NAME" \
   --machine-type="$MACHINE_TYPE" \
   --boot-disk-size=30GB \
@@ -207,7 +219,7 @@ Your application will be available at:
 - Backend API: http://$EXTERNAL_IP:8000
 - API Docs: http://$EXTERNAL_IP:8000/docs
 
-Note: It may take 2-3 minutes for all services to start.
+Note: Frontend build may take 3-5 minutes to complete.
 
 To check the deployment progress:
   gcloud compute ssh $INSTANCE_NAME --zone=$ZONE --command='tail -f /var/log/startup-script.log'
@@ -216,7 +228,10 @@ To SSH into the instance:
   gcloud compute ssh $INSTANCE_NAME --zone=$ZONE
 
 To check Docker services:
-  gcloud compute ssh $INSTANCE_NAME --zone=$ZONE --command='cd ~/api-developer-portal && docker-compose ps'
+  gcloud compute ssh $INSTANCE_NAME --zone=$ZONE --command='cd ~/api-developer-portal && sudo docker-compose ps'
+
+To monitor frontend build:
+  gcloud compute ssh $INSTANCE_NAME --zone=$ZONE --command='cd ~/api-developer-portal && sudo docker-compose logs -f frontend'
 
 To delete this instance when done:
   gcloud compute instances delete $INSTANCE_NAME --zone=$ZONE
@@ -224,6 +239,9 @@ To delete this instance when done:
 Or use our cleanup script:
   ./deploy/cleanup.sh
 ${NC}"
+
+# Save instance details
+echo "$INSTANCE_NAME,$ZONE,$EXTERNAL_IP" >> deploy/.deployed-instances
 
 # Ask if user wants to monitor the deployment
 echo -e "${YELLOW}Would you like to monitor the deployment progress? (y/n)${NC}"
