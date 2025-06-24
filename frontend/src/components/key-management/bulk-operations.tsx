@@ -307,7 +307,7 @@ export function BulkOperations({ apiKeys, onBulkOperation, isLoading }: BulkOper
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold">Bulk Operations</h2>
-        <p className="text-gray-600 mt-1">
+        <p className="text-muted-foreground mt-1">
           Select multiple API keys to perform batch operations efficiently.
         </p>
       </div>
@@ -414,8 +414,8 @@ export function BulkOperations({ apiKeys, onBulkOperation, isLoading }: BulkOper
                     onCheckedChange={() => handleSelectKey(key.id)}
                   />
                   <div>
-                    <div className="font-medium text-gray-900">{getDisplayName(key)}</div>
-                    <div className="text-sm text-gray-600">
+                    <div className="font-medium text-foreground">{getDisplayName(key)}</div>
+                    <div className="text-sm text-muted-foreground">
                       {key.key_id || key.key} • Created {new Date(key.created_at).toLocaleDateString()}
                     </div>
                   </div>
@@ -428,7 +428,7 @@ export function BulkOperations({ apiKeys, onBulkOperation, isLoading }: BulkOper
                   <Badge variant="outline">
                     {getKeyEnvironment(key.name)}
                   </Badge>
-                  <span className="text-sm text-gray-600">
+                  <span className="text-sm text-muted-foreground">
                     {key.total_requests || key.request_count || 0} requests
                   </span>
                 </div>
@@ -436,7 +436,7 @@ export function BulkOperations({ apiKeys, onBulkOperation, isLoading }: BulkOper
             ))}
             
             {filteredKeys.length === 0 && (
-              <div className="text-center py-8 text-gray-500">
+              <div className="text-center py-8 text-muted-foreground">
                 No API keys match the current filters.
               </div>
             )}

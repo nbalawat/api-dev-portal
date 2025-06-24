@@ -1016,16 +1016,19 @@ export default function DashboardPage() {
                 ) : (
                   <div className="space-y-4">
                     {displayApiKeys.map((apiKey: any) => (
-                      <Card key={apiKey.id}>
+                      <Card key={apiKey.id} className="border-border">
                         <CardContent className="p-4">
                           <div className="flex items-center justify-between">
                             <div className="flex-1">
                               <div className="flex items-center mb-2">
-                                <h3 className="font-semibold text-foreground mr-3">{apiKey.name}</h3>
+                                <h3 className="font-semibold text-lg text-foreground mr-3">{apiKey.name}</h3>
                                 <Badge variant={apiKey.is_active ? 'default' : 'secondary'}>
                                   {apiKey.is_active ? 'active' : 'inactive'}
                                 </Badge>
                               </div>
+                              {apiKey.description && (
+                                <p className="text-sm text-muted-foreground mb-2">{apiKey.description}</p>
+                              )}
                               <div className="flex items-center space-x-4 text-sm text-muted-foreground">
                                 <span className="flex items-center">
                                   <Calendar className="w-4 h-4 mr-1" />
@@ -1040,8 +1043,19 @@ export default function DashboardPage() {
                                   {formatNumber(apiKey.total_requests)} calls
                                 </span>
                               </div>
+                              {apiKey.permissions && apiKey.permissions.length > 0 && (
+                                <div className="flex items-center gap-2 mt-2">
+                                  <Shield className="w-4 h-4 text-muted-foreground" />
+                                  <span className="text-sm text-muted-foreground">Permissions:</span>
+                                  {apiKey.permissions.map((perm: string) => (
+                                    <Badge key={perm} variant="secondary" className="text-xs">
+                                      {perm}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              )}
                               <div className="mt-2 flex items-center gap-2">
-                                <code className="bg-secondary text-primary px-3 py-1 rounded text-sm font-mono border border-border min-w-0 flex-1">
+                                <code className="bg-secondary text-foreground px-3 py-1 rounded text-sm font-mono border border-border min-w-0 flex-1">
                                   {showApiKey === apiKey.id ? apiKey.key : maskApiKey(apiKey.key)}
                                 </code>
                                 <Button

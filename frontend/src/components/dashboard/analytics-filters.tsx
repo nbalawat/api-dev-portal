@@ -169,7 +169,7 @@ export function AnalyticsFilters({
                 variant="outline"
                 size="sm"
                 onClick={handleToggleCollapsed}
-                className="flex items-center gap-2 border-blue-300 bg-blue-50 hover:bg-blue-100 text-blue-800 font-semibold"
+                className="flex items-center gap-2 border-border bg-secondary hover:bg-secondary/80 text-foreground font-semibold"
               >
                 <Filter className="w-4 h-4" />
                 Filters
@@ -263,7 +263,7 @@ export function AnalyticsFilters({
               variant="outline"
               size="sm"
               onClick={handleToggleCollapsed}
-              className="flex items-center gap-1 border-blue-300 bg-blue-50 hover:bg-blue-100 text-blue-800 font-semibold"
+              className="flex items-center gap-1 border-border bg-secondary hover:bg-secondary/80 text-foreground font-semibold"
             >
               <ChevronUp className="w-4 h-4" />
               Collapse
@@ -411,7 +411,7 @@ export function AnalyticsFilters({
               const allSelected = group.values.every(code => filters.statusCodes.includes(code))
               return (
                 <div key={group.label} className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">{group.label}</span>
+                  <span className="text-sm text-muted-foreground">{group.label}</span>
                   <Button
                     variant={allSelected ? "default" : "outline"}
                     size="sm"
@@ -426,7 +426,7 @@ export function AnalyticsFilters({
           </div>
           
           {filters.statusCodes.length > 0 && (
-            <div className="text-sm text-gray-600">
+            <div className="text-sm text-muted-foreground">
               Selected: {filters.statusCodes.join(', ')}
             </div>
           )}

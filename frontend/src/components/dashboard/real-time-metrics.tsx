@@ -311,7 +311,7 @@ export function RealTimeMetrics({ refreshInterval = 30000, onRefresh }: RealTime
 
       {/* Alerts */}
       {unacknowledgedAlerts.length > 0 && (
-        <Card className="border-yellow-200 bg-yellow-50">
+        <Card className="border-yellow-600 bg-yellow-900/20">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <AlertTriangle className="h-5 w-5 text-yellow-600" />
@@ -321,14 +321,14 @@ export function RealTimeMetrics({ refreshInterval = 30000, onRefresh }: RealTime
           <CardContent>
             <div className="space-y-2">
               {unacknowledgedAlerts.slice(0, 3).map((alert) => (
-                <div key={alert.id} className="flex items-center justify-between p-3 bg-white rounded border">
+                <div key={alert.id} className="flex items-center justify-between p-3 bg-card rounded border border-border">
                   <div className="flex items-center space-x-3">
                     <Badge variant={alert.type === 'error' ? 'destructive' : alert.type === 'warning' ? 'secondary' : 'default'}>
                       {alert.type}
                     </Badge>
                     <div>
-                      <div className="font-medium">{alert.title}</div>
-                      <div className="text-sm text-gray-600">{alert.message}</div>
+                      <div className="font-medium text-foreground">{alert.title}</div>
+                      <div className="text-sm text-muted-foreground">{alert.message}</div>
                     </div>
                   </div>
                   <Button size="sm" variant="outline" onClick={() => acknowledgeAlert(alert.id)}>
@@ -486,8 +486,8 @@ export function RealTimeMetrics({ refreshInterval = 30000, onRefresh }: RealTime
                 {alerts.map((alert) => (
                   <div
                     key={alert.id}
-                    className={`flex items-center justify-between p-3 rounded border ${
-                      alert.acknowledged ? 'bg-gray-50 opacity-75' : 'bg-white'
+                    className={`flex items-center justify-between p-3 rounded border border-border ${
+                      alert.acknowledged ? 'bg-secondary/50 opacity-75' : 'bg-card'
                     }`}
                   >
                     <div className="flex items-center space-x-3">
@@ -495,9 +495,9 @@ export function RealTimeMetrics({ refreshInterval = 30000, onRefresh }: RealTime
                         {alert.type}
                       </Badge>
                       <div>
-                        <div className="font-medium">{alert.title}</div>
-                        <div className="text-sm text-gray-600">{alert.message}</div>
-                        <div className="text-xs text-gray-500">{new Date(alert.timestamp).toLocaleString()}</div>
+                        <div className="font-medium text-foreground">{alert.title}</div>
+                        <div className="text-sm text-muted-foreground">{alert.message}</div>
+                        <div className="text-xs text-muted-foreground">{new Date(alert.timestamp).toLocaleString()}</div>
                       </div>
                     </div>
                     

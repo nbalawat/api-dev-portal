@@ -41,8 +41,8 @@ export function TimeWindowSelector({
   return (
     <div className="flex items-center gap-3">
       <div className="flex items-center gap-2">
-        <Clock className="w-4 h-4 text-gray-500" />
-        <span className="text-sm font-medium text-gray-700">Time Window:</span>
+        <Clock className="w-4 h-4 text-muted-foreground" />
+        <span className="text-sm font-medium text-foreground">Time Window:</span>
       </div>
       
       <Select
@@ -77,7 +77,7 @@ export function TimeWindowSelector({
         </Button>
       )}
       
-      <div className="text-xs text-gray-500 ml-2">
+      <div className="text-xs text-muted-foreground ml-2">
         Showing data in {currentWindow.interval} intervals
       </div>
     </div>
@@ -93,7 +93,7 @@ export function QuickTimeButtons({
 
   return (
     <div className="flex items-center gap-2">
-      <span className="text-sm text-gray-600">Quick:</span>
+      <span className="text-sm text-muted-foreground">Quick:</span>
       {quickWindows.map((window) => (
         <Button
           key={window.value}

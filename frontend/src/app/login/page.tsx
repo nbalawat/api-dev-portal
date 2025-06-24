@@ -7,7 +7,7 @@ import { Eye, EyeOff, Lock, Mail, ArrowRight, AlertCircle, Key } from 'lucide-re
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useAuth } from '@/hooks/use-api'
-import { toast } from '@/hooks/use-toast'
+import { showToast } from '@/components/ui/simple-toast'
 
 export default function LoginPage() {
   const [formData, setFormData] = useState({
@@ -40,17 +40,17 @@ export default function LoginPage() {
 
     try {
       await login(formData)
-      toast({
+      showToast({
         title: "Welcome back!",
         description: "You have been successfully logged in.",
-        variant: "default",
+        variant: "success",
       })
       router.push('/dashboard')
     } catch (error: any) {
       const errorMessage = error?.message || 'Invalid email or password'
       setErrors({ submit: errorMessage })
-      toast({
-        title: "❌ Login Failed",
+      showToast({
+        title: "Login Failed",
         description: errorMessage,
         variant: "destructive",
         duration: 4000,
@@ -72,16 +72,16 @@ export default function LoginPage() {
         email: 'admin@example.com',
         password: 'admin123'
       })
-      toast({
-        title: "✅ Demo Login Successful!",
+      showToast({
+        title: "Demo Login Successful!",
         description: "Welcome to the API Developer Portal.",
-        variant: "success" as any,
+        variant: "success",
         duration: 3000,
       })
       router.push('/dashboard')
     } catch (error: any) {
-      toast({
-        title: "❌ Demo Login Failed",
+      showToast({
+        title: "Demo Login Failed",
         description: error?.message || 'Please try again',
         variant: "destructive",
         duration: 4000,
@@ -92,11 +92,9 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-mesh flex items-center justify-center p-4">
-      {/* Background elements */}
-      <div className="absolute inset-0 bg-gradient-to-br from-slate-50/50 via-primary-50/30 to-slate-100/50" />
-      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary-200/20 rounded-full blur-3xl animate-float" />
-      <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-success-200/20 rounded-full blur-3xl animate-float delay-1000" />
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      {/* Simple gradient background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-white to-purple-50" />
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -104,148 +102,147 @@ export default function LoginPage() {
         transition={{ duration: 0.5 }}
         className="w-full max-w-md relative z-10"
       >
-        <Card className="border-0 shadow-xl backdrop-blur-sm bg-white/95">
-          <CardHeader className="text-center pb-4">
-            <div className="w-16 h-16 rounded-xl bg-primary-100 flex items-center justify-center mx-auto mb-4">
-              <Key className="w-8 h-8 text-primary-600" />
+        <div className="bg-white rounded-2xl shadow-xl p-8">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <div className="w-16 h-16 rounded-xl bg-blue-100 flex items-center justify-center mx-auto mb-4">
+              <Key className="w-8 h-8 text-blue-600" />
             </div>
-            <CardTitle className="text-2xl font-bold text-gray-900">Welcome back</CardTitle>
-            <CardDescription className="text-gray-600">
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">Welcome back</h1>
+            <p className="text-gray-600">
               Sign in to your API Developer Portal account
-            </CardDescription>
-          </CardHeader>
+            </p>
+          </div>
 
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Email Field */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Email address
-                </label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <input
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => {
-                      setFormData(prev => ({ ...prev, email: e.target.value }))
-                      if (errors.email) setErrors(prev => ({ ...prev, email: '' }))
-                    }}
-                    className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors ${
-                      errors.email ? 'border-red-300 bg-red-50' : 'border-gray-300'
-                    }`}
-                    placeholder="Enter your email"
-                  />
-                </div>
-                {errors.email && (
-                  <p className="mt-1 text-sm text-red-600 flex items-center">
-                    <AlertCircle className="w-4 h-4 mr-1" />
-                    {errors.email}
-                  </p>
-                )}
-              </div>
-
-              {/* Password Field */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Password
-                </label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    value={formData.password}
-                    onChange={(e) => {
-                      setFormData(prev => ({ ...prev, password: e.target.value }))
-                      if (errors.password) setErrors(prev => ({ ...prev, password: '' }))
-                    }}
-                    className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors ${
-                      errors.password ? 'border-red-300 bg-red-50' : 'border-gray-300'
-                    }`}
-                    placeholder="Enter your password"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-                {errors.password && (
-                  <p className="mt-1 text-sm text-red-600 flex items-center">
-                    <AlertCircle className="w-4 h-4 mr-1" />
-                    {errors.password}
-                  </p>
-                )}
-              </div>
-
-              {/* Submit Error */}
-              {errors.submit && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                  <p className="text-sm text-red-600 flex items-center">
-                    <AlertCircle className="w-4 h-4 mr-2" />
-                    {errors.submit}
-                  </p>
-                </div>
-              )}
-
-              {/* Login Button */}
-              <Button
-                type="submit"
-                disabled={isLoading}
-                className="w-full bg-primary-600 hover:bg-primary-700 text-white py-3 rounded-lg font-medium transition-colors flex items-center justify-center"
-              >
-                {isLoading ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                    Signing in...
-                  </>
-                ) : (
-                  <>
-                    Sign in
-                    <ArrowRight className="w-4 h-4 ml-2" />
-                  </>
-                )}
-              </Button>
-
-              {/* Demo Login */}
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Email Field */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Email address
+              </label>
               <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-300" />
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-white text-gray-500">or</span>
-                </div>
+                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => {
+                    setFormData(prev => ({ ...prev, email: e.target.value }))
+                    if (errors.email) setErrors(prev => ({ ...prev, email: '' }))
+                  }}
+                  className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white text-gray-900 ${
+                    errors.email ? 'border-red-300' : 'border-gray-300'
+                  }`}
+                  placeholder="Enter your email"
+                />
               </div>
-
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleDemoLogin}
-                disabled={isLoading}
-                className="w-full py-3 border-gray-300 text-gray-700 hover:bg-gray-50"
-              >
-                Try Demo Login
-              </Button>
-            </form>
-
-            {/* Footer Links */}
-            <div className="mt-6 text-center space-y-2">
-              <p className="text-sm text-gray-600">
-                Don't have an account?{' '}
-                <a href="/register" className="text-primary-600 hover:text-primary-700 font-medium">
-                  Sign up
-                </a>
-              </p>
-              <p className="text-xs text-gray-500">
-                <a href="/" className="hover:text-gray-700">
-                  ← Back to home
-                </a>
-              </p>
+              {errors.email && (
+                <p className="mt-1 text-sm text-red-600 flex items-center">
+                  <AlertCircle className="w-4 h-4 mr-1" />
+                  {errors.email}
+                </p>
+              )}
             </div>
-          </CardContent>
-        </Card>
+
+            {/* Password Field */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Password
+              </label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={formData.password}
+                  onChange={(e) => {
+                    setFormData(prev => ({ ...prev, password: e.target.value }))
+                    if (errors.password) setErrors(prev => ({ ...prev, password: '' }))
+                  }}
+                  className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white text-gray-900 ${
+                    errors.password ? 'border-red-300' : 'border-gray-300'
+                  }`}
+                  placeholder="Enter your password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              {errors.password && (
+                <p className="mt-1 text-sm text-red-600 flex items-center">
+                  <AlertCircle className="w-4 h-4 mr-1" />
+                  {errors.password}
+                </p>
+              )}
+            </div>
+
+            {/* Submit Error */}
+            {errors.submit && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-sm text-red-600 flex items-center">
+                  <AlertCircle className="w-4 h-4 mr-2" />
+                  {errors.submit}
+                </p>
+              </div>
+            )}
+
+            {/* Login Button */}
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-medium transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isLoading ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                  Signing in...
+                </>
+              ) : (
+                <>
+                  Sign in
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </>
+              )}
+            </button>
+
+            {/* Demo Login */}
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300" />
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white text-gray-500">or</span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleDemoLogin}
+              disabled={isLoading}
+              className="w-full py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Try Demo Login
+            </button>
+          </form>
+
+          {/* Footer Links */}
+          <div className="mt-6 text-center space-y-2">
+            <p className="text-sm text-gray-600">
+              Don't have an account?{' '}
+              <a href="/register" className="text-blue-600 hover:text-blue-700 font-medium">
+                Sign up
+              </a>
+            </p>
+            <p className="text-xs text-gray-500">
+              <a href="/" className="hover:text-gray-700">
+                ← Back to home
+              </a>
+            </p>
+          </div>
+        </div>
 
         {/* Demo Credentials */}
         <motion.div
@@ -254,8 +251,8 @@ export default function LoginPage() {
           transition={{ delay: 0.2, duration: 0.5 }}
           className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg"
         >
-          <h4 className="text-sm font-medium text-blue-900 mb-2">Demo Credentials</h4>
-          <div className="text-xs text-blue-700 space-y-1">
+          <h4 className="text-sm font-medium text-gray-900 mb-2">Demo Credentials</h4>
+          <div className="text-xs text-gray-700 space-y-1">
             <p><strong>Admin:</strong> admin@example.com / admin123</p>
             <p><strong>Developer:</strong> developer@example.com / dev123</p>
             <p><strong>Viewer:</strong> viewer@example.com / view123</p>

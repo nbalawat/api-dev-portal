@@ -41,25 +41,25 @@
   }
 
   .dark {
-    /* Dark theme - Better contrast with lighter backgrounds */
+    /* Dark theme - Much better contrast */
     --background: 222 20% 12%;
     --foreground: 210 20% 98%;
-    --card: 222 20% 16%;
+    --card: 222 20% 18%;
     --card-foreground: 210 20% 98%;
-    --popover: 222 20% 16%;
+    --popover: 222 20% 18%;
     --popover-foreground: 210 20% 98%;
     --primary: 217 91% 60%;
     --primary-foreground: 222 47% 11%;
-    --secondary: 222 20% 24%;
+    --secondary: 222 20% 28%;
     --secondary-foreground: 210 20% 98%;
-    --muted: 222 20% 20%;
-    --muted-foreground: 215 20% 65%;
+    --muted: 222 20% 30%;
+    --muted-foreground: 215 20% 75%;
     --accent: 217 91% 60%;
     --accent-foreground: 222 47% 11%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    --border: 222 20% 24%;
-    --input: 222 20% 20%;
+    --border: 222 20% 30%;
+    --input: 222 20% 25%;
     --ring: 217 91% 60%;
     
     /* Dark theme status colors with proper contrast */

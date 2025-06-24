@@ -12,7 +12,7 @@ import os
 
 from .core.config import settings
 from .core.database import init_database, init_db, close_db
-from .routers import auth, users, api_keys, api_v1, permissions, rate_limits, analytics, key_lifecycle, ui, management, activity_logs, background_tasks, enhanced_rate_limits
+from .routers import auth, users, api_keys, api_v1, permissions, rate_limits, analytics, key_lifecycle, ui, management, activity_logs, background_tasks, enhanced_rate_limits, demo
 from .routers.marketplace import marketplace
 from .middleware import APIKeyAuthMiddleware
 from .middleware.rate_limiting import RateLimitMiddleware, get_rate_limit_manager
@@ -107,6 +107,10 @@ app.include_router(activity_logs.router, prefix="/api", tags=["Activity Logs"])
 app.include_router(background_tasks.router, prefix="/api", tags=["Background Tasks"])
 app.include_router(enhanced_rate_limits.router, prefix="/api", tags=["Enhanced Rate Limits"])
 app.include_router(marketplace.router, tags=["Payment Marketplace"])
+
+# Demo endpoints (only in development)
+if settings.app_env == "development":
+    app.include_router(demo.router, prefix="/api", tags=["Demo"])
 
 # Basic middleware for request timing
 @app.middleware("http")

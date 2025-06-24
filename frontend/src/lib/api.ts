@@ -143,18 +143,28 @@ class ApiClient {
   }
 
   async login(credentials: { email: string; password: string }) {
-    const formData = new FormData()
+    const formData = new URLSearchParams()
     formData.append('username', credentials.email)
     formData.append('password', credentials.password)
     
-    return this.request<{ access_token: string; token_type: string }>(
-      '/api/auth/login',
-      {
-        method: 'POST',
-        headers: {},
-        body: formData,
-      }
-    )
+    const response = await fetch(`${this.baseURL}/api/auth/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: formData,
+    })
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      throw new ApiError(
+        response.status,
+        errorData.detail || `HTTP ${response.status}: ${response.statusText}`,
+        errorData
+      )
+    }
+    
+    return response.json()
   }
 
   async getCurrentUser() {

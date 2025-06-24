@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { Inter, JetBrains_Mono } from 'next/font/google'
 import { ThemeProvider } from '@/components/theme-provider'
-import { Toaster } from '@/components/ui/toaster'
+import { SimpleToaster } from '@/components/ui/simple-toast'
 import './globals.css'
 
 const inter = Inter({ 
@@ -113,7 +113,7 @@ export default function RootLayout({
               {children}
             </main>
           </div>
-          <Toaster />
+          <SimpleToaster />
         </ThemeProvider>
       </body>
     </html>

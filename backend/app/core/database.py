@@ -77,6 +77,7 @@ async def init_db():
         # Import here to avoid circular imports
         from ..models.user import User, UserRole
         from ..core.security import get_password_hash
+        from ..core.demo_users import create_demo_users
         
         # Check if admin user exists
         from sqlalchemy import select
@@ -99,6 +100,11 @@ async def init_db():
             session.add(admin_user)
             await session.commit()
             print(f"Created admin user: {settings.admin_username}")
+        
+        # Always ensure demo users exist (for development)
+        if settings.app_env == "development":
+            await create_demo_users(session)
+            print("Demo users initialized")
 
 
 async def close_db():
