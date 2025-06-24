@@ -12,21 +12,28 @@ NC='\033[0m'
 echo -e "${GREEN}=== GCP Deployment Quick Setup ===${NC}"
 echo ""
 
-# Check if service account file is provided
-if [ -z "$1" ]; then
-    echo -e "${RED}Error: Please provide path to service account JSON file${NC}"
-    echo "Usage: ./quick-setup.sh path/to/service-account.json YOUR_PROJECT_ID"
+# Check if using environment variable or arguments
+if [ -n "$GOOGLE_APPLICATION_CREDENTIALS" ] && [ -n "$GCP_PROJECT_ID" ]; then
+    echo -e "${GREEN}Using environment variables:${NC}"
+    echo "  GOOGLE_APPLICATION_CREDENTIALS: $GOOGLE_APPLICATION_CREDENTIALS"
+    echo "  GCP_PROJECT_ID: $GCP_PROJECT_ID"
+    SERVICE_ACCOUNT_FILE="$GOOGLE_APPLICATION_CREDENTIALS"
+    PROJECT_ID="$GCP_PROJECT_ID"
+elif [ -n "$1" ] && [ -n "$2" ]; then
+    SERVICE_ACCOUNT_FILE="$1"
+    PROJECT_ID="$2"
+else
+    echo -e "${RED}Error: Missing required parameters${NC}"
+    echo ""
+    echo "Option 1 - Use environment variables:"
+    echo "  export GOOGLE_APPLICATION_CREDENTIALS=path/to/service-account.json"
+    echo "  export GCP_PROJECT_ID=your-project-id"
+    echo "  ./quick-setup.sh"
+    echo ""
+    echo "Option 2 - Pass as arguments:"
+    echo "  ./quick-setup.sh path/to/service-account.json YOUR_PROJECT_ID"
     exit 1
 fi
-
-if [ -z "$2" ]; then
-    echo -e "${RED}Error: Please provide your GCP project ID${NC}"
-    echo "Usage: ./quick-setup.sh path/to/service-account.json YOUR_PROJECT_ID"
-    exit 1
-fi
-
-SERVICE_ACCOUNT_FILE="$1"
-PROJECT_ID="$2"
 
 # Check if service account file exists
 if [ ! -f "$SERVICE_ACCOUNT_FILE" ]; then
@@ -39,13 +46,25 @@ echo "  Service Account: $SERVICE_ACCOUNT_FILE"
 echo "  Project ID: $PROJECT_ID"
 echo ""
 
-# Step 1: Authenticate with service account
-echo -e "${YELLOW}Step 1: Authenticating with service account...${NC}"
-if gcloud auth activate-service-account --key-file="$SERVICE_ACCOUNT_FILE"; then
-    echo -e "${GREEN}✓ Authentication successful${NC}"
+# Step 1: Set up authentication
+echo -e "${YELLOW}Step 1: Setting up authentication...${NC}"
+
+# Export the environment variable
+export GOOGLE_APPLICATION_CREDENTIALS="$SERVICE_ACCOUNT_FILE"
+echo -e "${GREEN}✓ GOOGLE_APPLICATION_CREDENTIALS set${NC}"
+
+# Try to use application default credentials first
+if gcloud auth application-default print-access-token &>/dev/null; then
+    echo -e "${GREEN}✓ Using Application Default Credentials${NC}"
 else
-    echo -e "${RED}✗ Authentication failed${NC}"
-    exit 1
+    # Fall back to service account activation
+    echo "  Activating service account..."
+    if gcloud auth activate-service-account --key-file="$SERVICE_ACCOUNT_FILE"; then
+        echo -e "${GREEN}✓ Service account activated${NC}"
+    else
+        echo -e "${RED}✗ Authentication failed${NC}"
+        exit 1
+    fi
 fi
 
 # Step 2: Set project
@@ -105,11 +124,10 @@ else
     echo -e "${RED}✗ (may need additional permissions)${NC}"
 fi
 
-# Optional: Set up application default credentials
+# Show environment setup for future use
 echo ""
-echo -e "${YELLOW}Optional: Setting up application default credentials...${NC}"
-export GOOGLE_APPLICATION_CREDENTIALS="$SERVICE_ACCOUNT_FILE"
-echo -e "${GREEN}✓ GOOGLE_APPLICATION_CREDENTIALS set${NC}"
+echo -e "${YELLOW}Environment Configuration:${NC}"
+echo "GOOGLE_APPLICATION_CREDENTIALS is set to: $SERVICE_ACCOUNT_FILE"
 
 # Summary
 echo ""
@@ -118,8 +136,9 @@ echo ""
 echo "You can now run the deployment with:"
 echo -e "${GREEN}  ./deploy/one-click-deploy.sh${NC}"
 echo ""
-echo "To use this setup in future terminal sessions, run:"
+echo "To use this setup in future terminal sessions, add to your ~/.bashrc or ~/.zshrc:"
 echo -e "${YELLOW}  export GOOGLE_APPLICATION_CREDENTIALS=\"$SERVICE_ACCOUNT_FILE\"${NC}"
+echo -e "${YELLOW}  export GCP_PROJECT_ID=\"$PROJECT_ID\"${NC}"
 echo -e "${YELLOW}  gcloud config set project $PROJECT_ID${NC}"
 echo ""
 

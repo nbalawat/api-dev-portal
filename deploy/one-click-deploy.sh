@@ -12,6 +12,18 @@ NC='\033[0m' # No Color
 
 echo -e "${GREEN}=== API Developer Portal - Quick GCP Deploy ===${NC}"
 
+# Check if using Application Default Credentials
+if [ -n "$GOOGLE_APPLICATION_CREDENTIALS" ]; then
+    echo -e "${GREEN}Using Application Default Credentials${NC}"
+    echo "  File: $GOOGLE_APPLICATION_CREDENTIALS"
+    
+    # Verify file exists
+    if [ ! -f "$GOOGLE_APPLICATION_CREDENTIALS" ]; then
+        echo -e "${RED}Error: Service account file not found${NC}"
+        exit 1
+    fi
+fi
+
 # Check if gcloud is installed
 if ! command -v gcloud &> /dev/null; then
     echo -e "${RED}Error: gcloud CLI is not installed${NC}"
@@ -22,9 +34,18 @@ fi
 # Get current project
 PROJECT_ID=$(gcloud config get-value project 2>/dev/null)
 if [ -z "$PROJECT_ID" ]; then
-    echo -e "${RED}Error: No GCP project set${NC}"
-    echo "Run: gcloud config set project YOUR_PROJECT_ID"
-    exit 1
+    # Try environment variable
+    if [ -n "$GCP_PROJECT_ID" ]; then
+        PROJECT_ID="$GCP_PROJECT_ID"
+        gcloud config set project "$PROJECT_ID" --quiet
+    else
+        echo -e "${RED}Error: No GCP project set${NC}"
+        echo "Option 1: Set environment variable"
+        echo "  export GCP_PROJECT_ID=your-project-id"
+        echo "Option 2: Use gcloud config"
+        echo "  gcloud config set project YOUR_PROJECT_ID"
+        exit 1
+    fi
 fi
 
 echo -e "${YELLOW}Using project: $PROJECT_ID${NC}"

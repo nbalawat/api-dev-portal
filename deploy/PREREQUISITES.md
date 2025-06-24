@@ -28,14 +28,27 @@ Download the installer from: https://cloud.google.com/sdk/docs/install
 
 ### 2. Authenticate with Your Service Account
 
+You have two options:
+
+**Option A: Use Environment Variable (Recommended)**
 ```bash
-# Set up authentication with your service account
+# Set the environment variable
+export GOOGLE_APPLICATION_CREDENTIALS="path/to/your-service-account.json"
+export GCP_PROJECT_ID="YOUR_PROJECT_ID"
+
+# The gcloud CLI will automatically use these credentials
+gcloud config set project $GCP_PROJECT_ID
+```
+
+**Option B: Activate Service Account**
+```bash
+# Explicitly activate the service account
 gcloud auth activate-service-account --key-file=path/to/your-service-account.json
-
-# Set your project
 gcloud config set project YOUR_PROJECT_ID
+```
 
-# Verify authentication
+**Verify authentication:**
+```bash
 gcloud auth list
 gcloud config list
 ```
@@ -92,45 +105,43 @@ Ensure billing is enabled on your project. The deployment will cost approximatel
 
 ## Quick Setup Script
 
-Save this as `setup-gcp.sh` and run it:
+We provide a setup script that handles everything:
 
+**Option 1: Using Environment Variables**
 ```bash
-#!/bin/bash
-# Quick GCP setup script
-
-# Authenticate with service account
-echo "Authenticating with service account..."
-gcloud auth activate-service-account --key-file=path/to/your-service-account.json
-
-# Set project
-echo "Setting project..."
-gcloud config set project YOUR_PROJECT_ID
-
-# Enable APIs
-echo "Enabling required APIs..."
-gcloud services enable \
-  compute.googleapis.com \
-  cloudresourcemanager.googleapis.com \
-  iam.googleapis.com
-
-# Check authentication
-echo "Current authenticated account:"
-gcloud auth list
-
-echo "Setup complete! You can now run ./deploy/one-click-deploy.sh"
-```
-
-## Alternative: Use Default Application Credentials
-
-If you prefer not to use the service account JSON directly:
-
-```bash
-# Set the environment variable
+# Set your credentials
 export GOOGLE_APPLICATION_CREDENTIALS="path/to/your-service-account.json"
+export GCP_PROJECT_ID="YOUR_PROJECT_ID"
 
-# Then use application default credentials
-gcloud auth application-default login
+# Run the setup
+./deploy/quick-setup.sh
 ```
+
+**Option 2: Pass as Arguments**
+```bash
+./deploy/quick-setup.sh path/to/your-service-account.json YOUR_PROJECT_ID
+```
+
+The script will:
+- Set up authentication (using env vars or service account activation)
+- Configure your project
+- Enable all required APIs
+- Verify everything is working
+
+## Using Environment Variables Throughout
+
+For a completely environment-based setup, add these to your shell profile (~/.bashrc or ~/.zshrc):
+
+```bash
+# Add to your shell profile
+export GOOGLE_APPLICATION_CREDENTIALS="/absolute/path/to/your-service-account.json"
+export GCP_PROJECT_ID="your-project-id"
+
+# Reload your shell
+source ~/.bashrc  # or source ~/.zshrc
+```
+
+Now all scripts will automatically use these credentials without any authentication steps!
 
 ## Verify Everything is Ready
 
