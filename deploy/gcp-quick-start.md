@@ -3,8 +3,22 @@
 This guide will help you deploy the API Developer Portal to Google Cloud Platform in under 10 minutes.
 
 ## Prerequisites
-- Google Cloud account with billing enabled
-- `gcloud` CLI installed locally (or use Cloud Shell)
+
+### Already Have a Service Account?
+Use our quick setup script:
+```bash
+./deploy/quick-setup.sh path/to/service-account.json YOUR_PROJECT_ID
+```
+
+### Need to Set Up From Scratch?
+1. Google Cloud account with billing enabled
+2. Install `gcloud` CLI ([installation guide](https://cloud.google.com/sdk/docs/install))
+3. A GCP project with these APIs enabled:
+   - Compute Engine API
+   - Cloud Resource Manager API
+   - Identity and Access Management (IAM) API
+
+See `PREREQUISITES.md` for detailed setup instructions.
 
 ## Option 1: One-Click Deployment (Recommended - 5 minutes)
 

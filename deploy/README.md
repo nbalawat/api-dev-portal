@@ -30,14 +30,24 @@ This directory contains scripts for quickly deploying the API Developer Portal t
 - **What it is**: Complete documentation with multiple deployment options
 - **Includes**: Cloud Shell deployment, manual steps, troubleshooting
 
+## Prerequisites
+
+### Quick Setup (if you have a service account JSON):
+```bash
+# Run our setup script with your service account and project ID
+./deploy/quick-setup.sh path/to/service-account.json YOUR_PROJECT_ID
+```
+
+### Manual Setup:
+1. Install [gcloud CLI](https://cloud.google.com/sdk/docs/install)
+2. Authenticate: `gcloud auth activate-service-account --key-file=service-account.json`
+3. Set project: `gcloud config set project YOUR_PROJECT_ID`
+4. Enable APIs: See `PREREQUISITES.md` for details
+
 ## Quickest Way to Deploy
 
 ```bash
-# 1. Make sure you have gcloud CLI installed
-# 2. Set your GCP project
-gcloud config set project YOUR_PROJECT_ID
-
-# 3. Run the one-click deploy
+# After running quick-setup.sh, just run:
 ./deploy/one-click-deploy.sh
 ```
 
