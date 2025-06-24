@@ -45,15 +45,27 @@ if [ -z "$PROJECT_ID" ]; then
     # Try environment variable
     if [ -n "$GCP_PROJECT_ID" ]; then
         PROJECT_ID="$GCP_PROJECT_ID"
-        gcloud config set project "$PROJECT_ID" --quiet
-    else
-        echo -e "${RED}Error: No GCP project set${NC}"
+    elif [ -n "$GOOGLE_APPLICATION_CREDENTIALS" ] && [ -f "$GOOGLE_APPLICATION_CREDENTIALS" ]; then
+        # Try to extract from service account JSON
+        PROJECT_ID=$(grep -o '"project_id"[[:space:]]*:[[:space:]]*"[^"]*"' "$GOOGLE_APPLICATION_CREDENTIALS" | sed 's/.*"\([^"]*\)"$/\1/')
+        echo -e "${GREEN}Extracted project ID from service account: $PROJECT_ID${NC}"
+    elif [ -f "$DEFAULT_SA_PATH" ]; then
+        # Try to extract from default service account JSON
+        PROJECT_ID=$(grep -o '"project_id"[[:space:]]*:[[:space:]]*"[^"]*"' "$DEFAULT_SA_PATH" | sed 's/.*"\([^"]*\)"$/\1/')
+        echo -e "${GREEN}Extracted project ID from service account: $PROJECT_ID${NC}"
+    fi
+    
+    if [ -z "$PROJECT_ID" ]; then
+        echo -e "${RED}Error: No GCP project found${NC}"
         echo "Option 1: Set environment variable"
         echo "  export GCP_PROJECT_ID=your-project-id"
         echo "Option 2: Use gcloud config"
         echo "  gcloud config set project YOUR_PROJECT_ID"
         exit 1
     fi
+    
+    # Set the project
+    gcloud config set project "$PROJECT_ID" --quiet
 fi
 
 echo -e "${YELLOW}Using project: $PROJECT_ID${NC}"
