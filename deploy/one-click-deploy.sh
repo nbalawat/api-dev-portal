@@ -12,6 +12,9 @@ NC='\033[0m' # No Color
 
 echo -e "${GREEN}=== API Developer Portal - Quick GCP Deploy ===${NC}"
 
+# Default service account path (hardcoded)
+DEFAULT_SA_PATH="/Users/nbalawat/development/scalable-rag-pipeline-with-access-entitlements/infrastructure/service-accounts/deploy-dev-sa.json"
+
 # Check if using Application Default Credentials
 if [ -n "$GOOGLE_APPLICATION_CREDENTIALS" ]; then
     echo -e "${GREEN}Using Application Default Credentials${NC}"
@@ -22,6 +25,11 @@ if [ -n "$GOOGLE_APPLICATION_CREDENTIALS" ]; then
         echo -e "${RED}Error: Service account file not found${NC}"
         exit 1
     fi
+elif [ -f "$DEFAULT_SA_PATH" ]; then
+    # Use default hardcoded path
+    echo -e "${GREEN}Using default service account${NC}"
+    echo "  File: $DEFAULT_SA_PATH"
+    export GOOGLE_APPLICATION_CREDENTIALS="$DEFAULT_SA_PATH"
 fi
 
 # Check if gcloud is installed

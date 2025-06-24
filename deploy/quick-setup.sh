@@ -12,6 +12,9 @@ NC='\033[0m'
 echo -e "${GREEN}=== GCP Deployment Quick Setup ===${NC}"
 echo ""
 
+# Default service account path (hardcoded)
+DEFAULT_SA_PATH="/Users/nbalawat/development/scalable-rag-pipeline-with-access-entitlements/infrastructure/service-accounts/deploy-dev-sa.json"
+
 # Check if using environment variable or arguments
 if [ -n "$GOOGLE_APPLICATION_CREDENTIALS" ] && [ -n "$GCP_PROJECT_ID" ]; then
     echo -e "${GREEN}Using environment variables:${NC}"
@@ -22,15 +25,34 @@ if [ -n "$GOOGLE_APPLICATION_CREDENTIALS" ] && [ -n "$GCP_PROJECT_ID" ]; then
 elif [ -n "$1" ] && [ -n "$2" ]; then
     SERVICE_ACCOUNT_FILE="$1"
     PROJECT_ID="$2"
+elif [ -f "$DEFAULT_SA_PATH" ]; then
+    # Use default hardcoded path
+    echo -e "${GREEN}Using default service account path${NC}"
+    SERVICE_ACCOUNT_FILE="$DEFAULT_SA_PATH"
+    
+    # Still need project ID
+    if [ -n "$1" ]; then
+        PROJECT_ID="$1"
+    elif [ -n "$GCP_PROJECT_ID" ]; then
+        PROJECT_ID="$GCP_PROJECT_ID"
+    else
+        echo -e "${YELLOW}Please provide project ID:${NC}"
+        echo "Usage: ./quick-setup.sh YOUR_PROJECT_ID"
+        echo "Or set: export GCP_PROJECT_ID=your-project-id"
+        exit 1
+    fi
 else
     echo -e "${RED}Error: Missing required parameters${NC}"
     echo ""
-    echo "Option 1 - Use environment variables:"
+    echo "Option 1 - Use default path with project ID:"
+    echo "  ./quick-setup.sh YOUR_PROJECT_ID"
+    echo ""
+    echo "Option 2 - Use environment variables:"
     echo "  export GOOGLE_APPLICATION_CREDENTIALS=path/to/service-account.json"
     echo "  export GCP_PROJECT_ID=your-project-id"
     echo "  ./quick-setup.sh"
     echo ""
-    echo "Option 2 - Pass as arguments:"
+    echo "Option 3 - Pass as arguments:"
     echo "  ./quick-setup.sh path/to/service-account.json YOUR_PROJECT_ID"
     exit 1
 fi

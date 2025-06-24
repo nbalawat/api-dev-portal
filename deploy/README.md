@@ -32,23 +32,28 @@ This directory contains scripts for quickly deploying the API Developer Portal t
 
 ## Prerequisites
 
-### Quick Setup (Recommended - Using Environment Variables):
+### Quick Setup (With Hardcoded Service Account):
 ```bash
-# Set your credentials
-export GOOGLE_APPLICATION_CREDENTIALS="path/to/service-account.json"
+# Just provide your project ID - service account is already configured
+./deploy/quick-setup.sh YOUR_PROJECT_ID
+```
+
+### Or source the deployment config:
+```bash
+# Load the preconfigured service account path
+source deploy/.env.deploy
+
+# Set your project ID
 export GCP_PROJECT_ID="your-project-id"
 
-# Run setup (enables APIs, verifies access)
+# Run setup
 ./deploy/quick-setup.sh
 ```
 
-### Alternative Setup:
-```bash
-# Pass credentials directly to setup script
-./deploy/quick-setup.sh path/to/service-account.json YOUR_PROJECT_ID
-```
+The service account path is hardcoded to:
+`/Users/nbalawat/development/scalable-rag-pipeline-with-access-entitlements/infrastructure/service-accounts/deploy-dev-sa.json`
 
-See `PREREQUISITES.md` for detailed instructions.
+See `PREREQUISITES.md` for other authentication options.
 
 ## Quickest Way to Deploy
 
